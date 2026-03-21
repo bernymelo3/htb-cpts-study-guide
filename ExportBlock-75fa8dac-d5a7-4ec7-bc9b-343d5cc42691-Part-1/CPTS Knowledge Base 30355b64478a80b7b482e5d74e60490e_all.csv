@@ -1,0 +1,174 @@
+﻿Title,Category,Command,Description,Tags
+Nmap Full Port Scan,Enumeration,nmap -p- --min-rate=1000 -T4 <target_ip>,"Performs a comprehensive scan of all 65535 TCP ports with increased speed. Use this as your initial scan to discover all open ports before running detailed service enumeration. The --min-rate flag ensures packets are sent quickly, and -T4 sets aggressive timing.","enumeration, nmap"
+Linux SUID Binary Enumeration,Privilege Escalation,find / -perm -4000 -type f 2>/dev/null,"Searches the entire filesystem for files with the SUID bit set. SUID binaries run with the permissions of their owner (often root), making them prime targets for privilege escalation. Review GTFOBins for exploitation techniques for any discovered binaries.","enumeration, privilege-escalation, suid"
+Responder LLMNR Poisoning,Active Directory,responder -I <interface> -wf,"Captures NTLM hashes by poisoning LLMNR, NBT-NS, and MDNS requests on the network. Use in Active Directory environments to capture credentials when users mistype share names or when automatic authentication occurs. Flags: -w starts WPAD rogue server, -f forces NTLM/Basic authentication.","active-directory, enumeration, responder"
+"Python TTY Shell Upgrade ",Linux,"python3 -c 'import pty; pty.spawn(""/bin/bash"")'
+",Upgrades shell,
+Default TTL values (OS defaults),Enumeration,,"Different operating systems use different default TTL values:
+- Linux / Unix: 64
+- Windows: 128
+- Network devices: 255",enumeration
+Nmap Host Discovery (ICMP Echo) with Packet Trace,Enumeration,sudo nmap 10.129.2.18 -sn -oA host -PE --packet-trace --disable-arp-ping,"Host discovery (ping scan) using ICMP Echo requests only, with packet trace output enabled.
+
+Notes:
+- -sn: host discovery only (no port scan)
+- -PE: ICMP echo request
+- --disable-arp-ping: do not use ARP discovery on local networks
+- --packet-trace: show sent/received packets
+- -oA host: output in all formats with base name ""host""• Linux / Unix: 64
+• Windows: 128
+• Network devices: 255","enumeration, nmap"
+"Netcat connect to SMTP port 25 (verbose, no DNS)",Enumeration,nc -nv 10.129.2.28 25,Quickly test TCP connectivity to port 25 (SMTP). Useful for verifying firewall rules and banner grabbing without DNS resolution.,enumeration
+Tcpdump capture traffic between two hosts,Enumeration,sudo tcpdump -i eth0 host 10.10.14.2 and 10.129.2.28,Capture packets on eth0 involving both hosts. Helpful to observe service interactions and confirm traffic flow during troubleshooting or exploitation.,enumeration
+Nmap full TCP port scan (fast),Enumeration,nmap <IP> -p- --min-rate 1000 -T4,Fast scan of all 65535 TCP ports to quickly identify open services. Good as an initial discovery scan before targeted version/script scans.,"enumeration, nmap"
+Nmap SMTP enum (banner + smtp-commands),Enumeration,"sudo nmap 10.129.2.28 -p 25 --script banner,smtp-commands",Enumerate SMTP on port 25: grab service banner and list supported SMTP commands via NSE scripts.,"enumeration, nmap"
+Nmap HTTP service + vuln scripts,Enumeration,sudo nmap 10.129.2.28 -p 80 -sV --script vuln,"Run version detection on port 80 and execute the ""vuln"" NSE category scripts to identify common web/service vulnerabilities.","enumeration, nmap, web"
+Nmap Vuln Robots.txt,Enumeration,sudo nmap  <ip> -p 80 -sV --script vuln,,
+Guessing the OS withouth noise,Enumeration,"curl -I http://10.129.25.6
+Sequence 
+
+sudo nmap -O --disable-arp-ping -Pn 10.129.33.182
+
+
+sudo nmap -sn -PE --packet-trace --disable-arp-ping <redacted-ip>
+
+
+sudo nmap -sV -p22,80,110,139,143,445,10001 --disable-arp-ping -Pn <redacted-ip>
+",,
+Guessing the DNS without noise,Enumeration,,,
+HTB Hard Lab — Nmap Enumeration: Source Port Evasion (53/DNS),Enumeration,,Moved to page content (markdown).,"enumeration, nmap"
+HTB - SMB Enumeration Box (10.129.202.5),Enumeration,"nmap -sV -sC -p139,445 10.129.202.5
+
+rpcclient -U """" 10.129.202.5
+# inside rpcclient:
+#   srvinfo
+#   querydominfo
+#   netshareenumall
+
+# get share path (null session / no password):
+rpcclient -U """" 10.129.202.5 -N -c ""netsharegetinfo sambashare""
+
+smbclient //10.129.202.5/sambashare
+cd contents
+get flag.txt","SMB enum workflow:
+- Nmap: found Samba smbd 4.6.2 on 139/445
+- rpcclient (anon/null session):
+  - srvinfo → InlaneFreight SMB server (Samba, Ubuntu)
+  - querydominfo → domain DEVOPS
+  - netshareenumall → share sambashare (remark: InFreight SMB v3.1)
+  - netsharegetinfo sambashare → full path (use -N to avoid password prompt)
+- smbclient: access sambashare/contents and retrieve flag.txt","enumeration, nmap"
+HTB - NFS Enumeration (Practical Commands),Enumeration,"nmap -sV -p111,2049 <IP>
+nmap --script nfs* -p111,2049 <IP>
+showmount -e <IP>
+mkdir target-nfs
+sudo mount -t nfs <IP>:/ ./target-nfs -o nolock
+cd target-nfs
+ls
+ls -R
+ls -l
+ls -n
+cat flag.txt
+cd ..
+sudo umount ./target-nfs","NFS (HTB) – quick workflow
+1) Scan: nmap -sV -p111,2049 <IP>
+2) Enum exports: nmap --script nfs -p111,2049 <IP>
+3) List shares: showmount -e <IP>
+4) Mount: sudo mount -t nfs <IP>:/ ./target-nfs -o nolock
+5) Explore: ls / ls -R / ls -l / ls -n
+6) Read: cat flag.txt
+7) Unmount: sudo umount ./target-nfs
+
+10 commands (SMB + NFS)
+SMB
+1. nmap -sV -sC -p139,445 <IP>
+2. smbclient -L //<IP> -N
+3. rpcclient -U """" <IP> -N
+4. rpcclient -U """" <IP> -N -c ""srvinfo""
+5. rpcclient -U """" <IP> -N -c ""querydominfo""
+6. rpcclient -U """" <IP> -N -c ""netshareenumall""
+7. rpcclient -U """" <IP> -N -c ""netsharegetinfo <share>""
+
+NFS
+8. nmap --script nfs -p111,2049 <IP>
+9. showmount -e <IP>
+10. sudo mount -t nfs <IP>:/ <mountdir> -o nolock","enumeration, nmap"
+HTB - DNS Enumeration via NS + Zone Transfer (AXFR),Enumeration,"# NS lookup (when reverse PTR is NXDOMAIN)
+dig @10.129.6.37 inlanefreight.htb NS
+
+# alternative
+nslookup -type=NS inlanefreight.htb 10.129.6.37
+
+# zone transfer attempt (common next step)
+dig @10.129.6.37 inlanefreight.htb AXFR
+
+# if NS is known, try against that host too
+# (replace ns1.inlanefreight.htb with your NS result)
+dig @10.129.6.37 inlanefreight.htb AXFR
+# or
+# dig @ns1.inlanefreight.htb inlanefreight.htb AXFR","When reverse DNS returns NXDOMAIN (no PTR record), enumerate the FQDN by asking the target DNS server for the domain’s NS record:
+- dig @<dns_ip> <domain> NS
+Expected answer looks like: inlanefreight.htb IN NS ns1.inlanefreight.htb.
+
+Next common HTB step: attempt a zone transfer (AXFR) to dump DNS records:
+- dig @<dns_ip> <domain> AXFR
+(Usually works only if misconfigured.)","enumeration, nmap"
+Finding FQDN from IP octet (DNS workflow),Enumeration,"dig axfr <domain> @<DNS_IP>
+dig axfr <subzone> @<DNS_IP>
+dnsenum --dnsserver <DNS_IP> --enum -p 0 -s 0 -o <out>.txt -f <wordlist> <subzone>","Logic: identify DNS + base domain → try AXFR on main zone → extract subzones and try AXFR on them → if AXFR denied, brute-force subdomains with a focused list → match A records whose IP ends with the required octet; the corresponding hostname is the FQDN to submit.",enumeration
+Question 2 +1,Enumeration,"sudo nmap 10.129.x.x -sC -sV -p25
+
+telnet 10.129.x.x 25
+VRFY root
+VRFY admin
+
+smtp-user-enum -M VRFY -U /usr/share/wordlists/... -t 10.129.x.x","SMTP Footprinting lab — banner/hostname discovery + VRFY user enumeration. Check the SMTP EHLO response for the server hostname (e.g., myhostname / mail*.inlanefreight.htb).",enumeration
+IMAP / POP3 — Footprinting Notes,Enumeration,"# Ports
+# IMAP: 143 (plain) / 993 (SSL)
+# POP3: 110 (plain) / 995 (SSL)
+
+# IMAP (TAG required)
+1 LOGIN user pass
+2 LIST """" 
+3 SELECT INBOX
+4 FETCH 1 BODY[]
+5 LOGOUT
+
+# POP3
+USER robin
+PASS robin
+LIST
+RETR 1
+QUIT
+
+# Footprinting (Nmap)
+sudo nmap <IP> -sV -p110,143,993,995 -sC
+
+# SSL connections
+# IMAP
+openssl s_client -connect <IP>:imaps
+# POP3
+openssl s_client -connect <IP>:pop3s
+
+# cURL (IMAPS)
+curl -k 'imaps://<IP>' --user robin:robin -v
+
+# SSL cert recon (from nmap)
+# commonName=mail1.inlanefreight.htb
+# organizationName=Inlanefreight
+# emailAddress=cry0l1t3@inlanefreight.htb
+
+# Lab flow
+# 1) SMTP enum → user robin
+# 2) Test creds robin:robin
+# 3) Login IMAP
+# 4) LIST folders → http://DEV.DEPARTMENT.INT
+# 5) SELECT + FETCH emails → flag
+
+# Gotchas
+# - Always use TAG for IMAP commands
+# - INBOX empty ≠ nothing; LIST all folders
+# - Nested folder names may use dots
+# - "" 0 EXISTS"" means selected folder empty","IMAP/POP3 email retrieval footprinting: ports, key commands, nmap/SSL cert recon, and lab flow (robin:robin → IMAP folders → flag).","enumeration, nmap"
+Remote Management (Windows + Linux),Enumeration,,,
+Scan,Enumeration,nmap -sV -p- --min-rate 5000,,

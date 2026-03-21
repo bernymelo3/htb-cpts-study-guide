@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CPTS Knowledge Base</title>
+<style>
+  :root {
+    --bg-dark: #0d1117;
+    --bg-card: #161b22;
+    --bg-sidebar: #0d1117;
+    --bg-hover: #1c2333;
+    --bg-active: #1f6feb22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --accent: #58a6ff;
+    --accent2: #3fb950;
+    --accent3: #d2a8ff;
+    --accent4: #f78166;
+    --accent5: #ff7b72;
+    --code-bg: #0d1117;
+    --tag-bg: #1f6feb33;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: var(--bg-dark); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+
+  /* Sidebar */
+  #sidebar { width: 280px; min-width: 280px; background: var(--bg-sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; height: 100vh; }
+  #sidebar-header { padding: 20px 16px 12px; border-bottom: 1px solid var(--border); }
+  #sidebar-header h1 { font-size: 18px; color: var(--accent); font-weight: 700; letter-spacing: 1px; }
+  #sidebar-header p { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+  #search-box { margin: 12px 16px; padding: 8px 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px; outline: none; width: calc(100% - 32px); }
+  #search-box:focus { border-color: var(--accent); }
+  #search-box::placeholder { color: var(--text-dim); }
+
+  /* Category nav */
+  #categories { padding: 8px 0; overflow-y: auto; flex: 1; }
+  .cat-group { margin-bottom: 4px; }
+  .cat-header { display: flex; align-items: center; padding: 8px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-dim); cursor: pointer; user-select: none; }
+  .cat-header:hover { color: var(--text); }
+  .cat-header .count { margin-left: auto; background: var(--bg-hover); padding: 1px 7px; border-radius: 10px; font-size: 10px; }
+  .cat-header .arrow { margin-right: 6px; transition: transform 0.15s; font-size: 10px; }
+  .cat-header.collapsed .arrow { transform: rotate(-90deg); }
+  .cat-items { }
+  .cat-header.collapsed + .cat-items { display: none; }
+  .note-link { display: block; padding: 6px 16px 6px 32px; font-size: 13px; color: var(--text-dim); cursor: pointer; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 2px solid transparent; transition: all 0.1s; }
+  .note-link:hover { background: var(--bg-hover); color: var(--text); }
+  .note-link.active { background: var(--bg-active); color: var(--accent); border-left-color: var(--accent); }
+
+  /* Stats bar */
+  #stats { padding: 12px 16px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-dim); }
+
+  /* Main content */
+  #main { flex: 1; overflow-y: auto; padding: 0; }
+  #welcome, #note-view { max-width: 860px; margin: 0 auto; padding: 40px 48px; }
+
+  /* Welcome */
+  #welcome h2 { font-size: 28px; margin-bottom: 8px; }
+  #welcome p { color: var(--text-dim); margin-bottom: 24px; font-size: 15px; }
+  .stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 32px; }
+  .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center; }
+  .stat-card .num { font-size: 28px; font-weight: 700; }
+  .stat-card .label { font-size: 11px; color: var(--text-dim); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .sc-scan .num { color: var(--accent); }
+  .sc-foot .num { color: var(--accent2); }
+  .sc-lab .num { color: var(--accent3); }
+  .sc-exploit .num { color: var(--accent4); }
+  .sc-privesc .num { color: var(--accent5); }
+  .sc-tool .num { color: #79c0ff; }
+
+  /* Tags overview */
+  .tags-overview { margin-top: 16px; }
+  .tags-overview h3 { font-size: 14px; color: var(--text-dim); margin-bottom: 10px; }
+  .tag-cloud { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag-pill { padding: 4px 10px; background: var(--tag-bg); border: 1px solid var(--accent)44; border-radius: 12px; font-size: 12px; color: var(--accent); cursor: pointer; transition: all 0.15s; }
+  .tag-pill:hover { background: var(--accent); color: var(--bg-dark); }
+  .tag-pill.active { background: var(--accent); color: var(--bg-dark); }
+
+  /* Note view */
+  #note-view { display: none; }
+  #note-view .note-category { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 8px; }
+  #note-view h2 { font-size: 24px; margin-bottom: 12px; line-height: 1.3; }
+  #note-view .note-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+  #note-view .note-tag { padding: 2px 8px; background: var(--tag-bg); border-radius: 10px; font-size: 11px; color: var(--accent); }
+  #note-view .note-body { font-size: 14px; line-height: 1.7; }
+  #note-view .note-body h1, #note-view .note-body h2, #note-view .note-body h3 { margin-top: 24px; margin-bottom: 8px; }
+  #note-view .note-body h1 { font-size: 20px; }
+  #note-view .note-body h2 { font-size: 18px; }
+  #note-view .note-body h3 { font-size: 16px; color: var(--accent2); }
+  #note-view .note-body p { margin-bottom: 12px; }
+  #note-view .note-body ul, #note-view .note-body ol { margin-left: 20px; margin-bottom: 12px; }
+  #note-view .note-body li { margin-bottom: 4px; }
+
+  /* Command blocks */
+  .cmd-block { position: relative; background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; margin: 12px 0; font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; font-size: 13px; line-height: 1.6; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+  .cmd-block .copy-btn { position: absolute; top: 6px; right: 6px; background: var(--bg-hover); border: 1px solid var(--border); color: var(--text-dim); padding: 3px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; opacity: 0; transition: opacity 0.15s; }
+  .cmd-block:hover .copy-btn { opacity: 1; }
+  .cmd-block .copy-btn:hover { color: var(--text); border-color: var(--accent); }
+  .cmd-block .prompt { color: var(--accent2); user-select: none; }
+  .cmd-block .comment { color: var(--text-dim); }
+
+  /* Section divider */
+  .section-divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+  /* Description blocks */
+  .desc-block { background: var(--bg-card); border-left: 3px solid var(--accent); padding: 12px 16px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; line-height: 1.6; }
+
+  /* Inline code */
+  .inline-code { background: var(--bg-hover); padding: 2px 6px; border-radius: 3px; font-family: 'SF Mono', monospace; font-size: 12px; color: var(--accent4); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    #sidebar { width: 100%; min-width: 100%; position: fixed; z-index: 10; transform: translateX(-100%); transition: transform 0.2s; }
+    #sidebar.open { transform: translateX(0); }
+    #welcome, #note-view { padding: 20px 16px; }
+    .mobile-toggle { display: block !important; }
+  }
+  .mobile-toggle { display: none; position: fixed; top: 12px; left: 12px; z-index: 20; background: var(--bg-card); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 16px; }
+</style>
+</head>
+<body>
+
+<button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">&#9776;</button>
+
+<div id="sidebar">
+  <div id="sidebar-header">
+    <h1>CPTS Notes</h1>
+    <p>HTB Certified Penetration Testing Specialist</p>
+  </div>
+  <input type="text" id="search-box" placeholder="Search notes, commands, tags...">
+  <div id="categories"></div>
+  <div id="stats"></div>
+</div>
+
+<div id="main">
+  <div id="welcome">
+    <h2>CPTS Knowledge Base</h2>
+    <p>Your organized penetration testing study notes from Hack The Box Academy.</p>
+    <div class="stat-cards" id="stat-cards"></div>
+    <div class="tags-overview">
+      <h3>Filter by tag</h3>
+      <div class="tag-cloud" id="tag-cloud"></div>
+    </div>
+  </div>
+  <div id="note-view">
+    <div class="note-category" id="nv-category"></div>
+    <h2 id="nv-title"></h2>
+    <div class="note-tags" id="nv-tags"></div>
+    <div class="note-body" id="nv-body"></div>
+  </div>
+</div>
+
+<script>
+const NOTES = [
+  {
+    id: 1,
+    title: "Nmap Full Port Scan",
+    category: "Scanning & Enumeration",
+    tags: ["nmap", "enumeration", "tcp"],
+    commands: ["nmap -p- --min-rate=1000 -T4 <target_ip>"],
+    description: "Performs a comprehensive scan of all 65535 TCP ports with increased speed. Use this as your initial scan to discover all open ports before running detailed service enumeration. The --min-rate flag ensures packets are sent quickly, and -T4 sets aggressive timing.",
+    body: ""
+  },
+  {
+    id: 2,
+    title: "Nmap Full TCP Port Scan (Fast)",
+    category: "Scanning & Enumeration",
+    tags: ["nmap", "enumeration", "tcp"],
+    commands: ["nmap <IP> -p- --min-rate 1000 -T4"],
+    description: "Fast scan of all 65535 TCP ports to quickly identify open services. Good as an initial discovery scan before targeted version/script scans.",
+    body: ""
+  },
+  {
+    id: 3,
+    title: "Nmap Host Discovery (ICMP Echo) with Packet Trace",
+    category: "Scanning & Enumeration",
+    tags: ["nmap", "enumeration", "icmp", "host-discovery"],
+    commands: ["sudo nmap 10.129.2.18 -sn -oA host -PE --packet-trace --disable-arp-ping"],
+    description: "Host discovery (ping scan) using ICMP Echo requests only, with packet trace output enabled.",
+    body: `<h3>Flags Explained</h3>
+<ul>
+<li><span class="inline-code">-sn</span>: host discovery only (no port scan)</li>
+<li><span class="inline-code">-PE</span>: ICMP echo request</li>
+<li><span class="inline-code">--disable-arp-ping</span>: do not use ARP discovery on local networks</li>
+<li><span class="inline-code">--packet-trace</span>: show sent/received packets</li>
+<li><span class="inline-code">-oA host</span>: output in all formats with base name "host"</li>
+</ul>
+<h3>Default TTL Values (Reference)</h3>
+<ul>
+<li>Linux / Unix: <strong>64</strong></li>
+<li>Windows: <strong>128</strong></li>
+<li>Network devices: <strong>255</strong></li>
+</ul>`
+  },
+  {
+    id: 4,
+    title: "Nmap HTTP Service + Vuln Scripts",
+    category: "Scanning & Enumeration",
+    tags: ["nmap", "enumeration", "web", "vuln"],
+    commands: ["sudo nmap 10.129.2.28 -p 80 -sV --script vuln"],
+    description: "Run version detection on port 80 and execute the 'vuln' NSE category scripts to identify common web/service vulnerabilities.",
+    body: ""
+  },
+  {
+    id: 5,
+    title: "Nmap Vuln Robots.txt",
+    category: "Scanning & Enumeration",
+    tags: ["nmap", "enumeration", "web"],
+    commands: ["sudo nmap <ip> -p 80 -sV --script vuln"],
+    description: "Same vuln script scan targeting web services; checks for common misconfigurations including exposed robots.txt entries.",
+    body: ""
+  },
+  {
+    id: 6,
+    title: "Nmap SMTP Enum (Banner + SMTP-Commands)",
+    category: "Scanning & Enumeration",
+    tags: ["nmap", "enumeration", "smtp"],
+    commands: ["sudo nmap 10.129.2.28 -p 25 --script banner,smtp-commands"],
+    description: "Enumerate SMTP on port 25: grab service banner and list supported SMTP commands via NSE scripts.",
+    body: ""
+  },
+  {
+    id: 7,
+    title: "Netcat Connect to SMTP Port 25",
+    category: "Scanning & Enumeration",
+    tags: ["netcat", "enumeration", "smtp"],
+    commands: ["nc -nv 10.129.2.28 25"],
+    description: "Quickly test TCP connectivity to port 25 (SMTP). Useful for verifying firewall rules and banner grabbing without DNS resolution. Flags: -n (no DNS), -v (verbose).",
+    body: ""
+  },
+  {
+    id: 8,
+    title: "Default TTL Values (OS Defaults)",
+    category: "Scanning & Enumeration",
+    tags: ["enumeration", "os-detection", "ttl"],
+    commands: [],
+    description: "Different operating systems use different default TTL values. Useful for passive OS fingerprinting without running aggressive scans.",
+    body: `<h3>TTL Reference Table</h3>
+<ul>
+<li><strong>Linux / Unix</strong>: TTL = 64</li>
+<li><strong>Windows</strong>: TTL = 128</li>
+<li><strong>Network devices (routers, switches)</strong>: TTL = 255</li>
+</ul>
+<p>Each hop decrements TTL by 1, so subtract the number of hops to estimate the original value.</p>`
+  },
+  {
+    id: 9,
+    title: "Guessing the OS Without Noise",
+    category: "Scanning & Enumeration",
+    tags: ["enumeration", "os-detection", "stealth"],
+    commands: [
+      "curl -I http://10.129.25.6",
+      "sudo nmap -O --disable-arp-ping -Pn 10.129.33.182",
+      "sudo nmap -sn -PE --packet-trace --disable-arp-ping <target>",
+      "sudo nmap -sV -p22,80,110,139,143,445,10001 --disable-arp-ping -Pn <target>"
+    ],
+    description: "Techniques for identifying the target OS with minimal noise. Use curl to check HTTP headers for server info, or nmap with -O for OS detection. Combine with TTL analysis from ping responses.",
+    body: ""
+  },
+  {
+    id: 10,
+    title: "Guessing DNS Without Noise",
+    category: "Scanning & Enumeration",
+    tags: ["enumeration", "dns", "stealth"],
+    commands: ["sudo nmap -sUV -p53 --disable-arp-ping -n -Pn"],
+    description: "Quick UDP scan targeting DNS port 53 only. Uses -sUV for UDP version detection, -n to skip DNS resolution, -Pn to skip host discovery. Minimal footprint to confirm DNS service.",
+    body: ""
+  },
+  {
+    id: 11,
+    title: "Quick Scan Template",
+    category: "Scanning & Enumeration",
+    tags: ["nmap", "enumeration"],
+    commands: ["nmap -sV -p- --min-rate 5000"],
+    description: "Aggressive speed full port scan with version detection. Use --min-rate 5000 only on stable/local networks. For remote targets, use 1000-2000.",
+    body: ""
+  },
+  {
+    id: 12,
+    title: "Tcpdump Capture Between Two Hosts",
+    category: "Scanning & Enumeration",
+    tags: ["tcpdump", "enumeration", "traffic-capture"],
+    commands: ["sudo tcpdump -i eth0 host 10.10.14.2 and 10.129.2.28"],
+    description: "Capture packets on eth0 involving both hosts. Helpful to observe service interactions and confirm traffic flow during troubleshooting or exploitation.",
+    body: ""
+  },
+  {
+    id: 13,
+    title: "IMAP / POP3 -- Footprinting Notes",
+    category: "Footprinting",
+    tags: ["enumeration", "nmap", "imap", "pop3", "email"],
+    commands: [
+      "sudo nmap <IP> -sV -p110,143,993,995 -sC",
+      "openssl s_client -connect <IP>:imaps",
+      "openssl s_client -connect <IP>:pop3s",
+      "curl -k 'imaps://<IP>' --user robin:robin -v"
+    ],
+    description: "Complete footprinting methodology for IMAP and POP3 mail services.",
+    body: `<h3>Ports</h3>
+<ul>
+<li>IMAP: <strong>143</strong> (plain) / <strong>993</strong> (SSL)</li>
+<li>POP3: <strong>110</strong> (plain) / <strong>995</strong> (SSL)</li>
+</ul>
+<h3>IMAP Commands (TAG required)</h3>
+<div class="cmd-block"><span class="comment"># Each command must be prefixed with a tag number</span>
+1 LOGIN user pass
+2 LIST "" *
+3 SELECT INBOX
+4 FETCH 1 BODY[]
+5 LOGOUT</div>
+<h3>POP3 Commands</h3>
+<div class="cmd-block">USER robin
+PASS robin
+LIST
+RETR 1
+QUIT</div>
+<h3>Lab Flow</h3>
+<ol>
+<li>SMTP enum to discover user (robin)</li>
+<li>Test creds robin:robin</li>
+<li>Login IMAP</li>
+<li>LIST folders to find hidden content</li>
+<li>SELECT + FETCH emails for flag</li>
+</ol>
+<h3>Gotchas</h3>
+<ul>
+<li>Always use TAG for IMAP commands</li>
+<li>INBOX empty does not mean nothing exists -- LIST all folders</li>
+<li>Nested folder names may use dots as separators</li>
+<li>"0 EXISTS" means selected folder is empty, try other folders</li>
+</ul>`
+  },
+  {
+    id: 14,
+    title: "Finding FQDN from IP Octet (DNS Workflow)",
+    category: "Footprinting",
+    tags: ["enumeration", "dns", "dig", "zone-transfer"],
+    commands: [
+      "dig axfr <domain> @<DNS_IP>",
+      "dig axfr <subzone> @<DNS_IP>",
+      "dnsenum --dnsserver <DNS_IP> --enum -p 0 -s 0 -o <out>.txt -f <wordlist> <subzone>"
+    ],
+    description: "Logic: identify DNS + base domain -> try AXFR on main zone -> extract subzones and try AXFR on them -> if AXFR denied, brute-force subdomains -> match A records whose IP ends with the required octet; the corresponding hostname is the FQDN.",
+    body: `<h3>DNS Recon with dig -- Full Cheatsheet</h3>
+<h3>1. Basic Lookups</h3>
+<div class="cmd-block">dig example.com                     <span class="comment"># Default A lookup</span>
+dig @10.10.10.10 example.com        <span class="comment"># Ask specific DNS server</span>
+dig example.com +short              <span class="comment"># Short answers only</span></div>
+<h3>2. Common Record Types</h3>
+<div class="cmd-block">dig A example.com                   <span class="comment"># IPv4</span>
+dig AAAA example.com                <span class="comment"># IPv6</span>
+dig MX example.com                  <span class="comment"># Mail servers</span>
+dig NS example.com                  <span class="comment"># Nameservers</span>
+dig TXT example.com                 <span class="comment"># SPF, verification tokens</span>
+dig CNAME www.example.com           <span class="comment"># Canonical name</span></div>
+<h3>3. SOA -- Start of Authority</h3>
+<p>One per zone. Confirms the zone exists and shows who is authoritative.</p>
+<div class="cmd-block">dig SOA example.com
+dig SOA example.com @&lt;DNS_IP&gt;</div>
+<p>Returns: Primary NS, Admin email, Serial, refresh/retry/expire, minimum TTL.</p>
+<h3>4. AXFR -- Zone Transfers</h3>
+<p>Full zone dump. Works only if misconfigured.</p>
+<div class="cmd-block">dig AXFR example.com @&lt;DNS_IP&gt;             <span class="comment"># Main zone</span>
+dig AXFR internal.example.com @&lt;DNS_IP&gt;    <span class="comment"># Sub-zones</span>
+dig AXFR dev.example.com @&lt;DNS_IP&gt;</div>
+<p>Always try AXFR on the main domain AND any subdomains that look like separate zones.</p>
+<h3>5. ANY and Version Queries</h3>
+<div class="cmd-block">dig ANY example.com @&lt;DNS_IP&gt;              <span class="comment"># All records (often limited)</span>
+dig CH TXT version.bind @&lt;DNS_IP&gt;          <span class="comment"># BIND version</span></div>
+<h3>6. Reverse Lookups (PTR)</h3>
+<div class="cmd-block">dig -x 10.129.9.231                        <span class="comment"># IP to hostname</span>
+dig -x 10.129.9.231 @&lt;DNS_IP&gt;</div>
+<h3>7. Output Control</h3>
+<div class="cmd-block">dig example.com +noall +answer              <span class="comment"># Answer section only</span>
+dig example.com +short                      <span class="comment"># Short answers</span>
+dig AXFR example.com @&lt;DNS_IP&gt; +tcp         <span class="comment"># Force TCP</span></div>
+<h3>8. Typical Pentest Workflow</h3>
+<ol>
+<li>Basic info: <span class="inline-code">dig example.com +short</span>, NS, MX, TXT</li>
+<li>Check zone metadata: <span class="inline-code">dig SOA example.com</span></li>
+<li>Info-leaky queries: ANY, BIND version</li>
+<li>Attempt zone transfers: AXFR on main + sub-zones</li>
+<li>If AXFR fails, brute-force subdomains</li>
+<li>Reverse lookup interesting IPs: <span class="inline-code">dig -x &lt;IP&gt;</span></li>
+</ol>`
+  },
+  {
+    id: 15,
+    title: "Remote Management (Windows + Linux)",
+    category: "Footprinting",
+    tags: ["enumeration", "rdp", "winrm", "ssh", "remote-access"],
+    commands: [
+      "nmap -p3389 --script \"rdp-enum-encryption,rdp-ntlm-info,rdp-vuln-ms12-020\" <IP>",
+      "xfreerdp /v:<IP> /u:<USER> /p:<PASS> /cert:ignore /dynamic-resolution",
+      "evil-winrm -i <IP> -u <USER> -p <PASS>",
+      "impacket-wmiexec <DOMAIN>/<USER>:<PASS>@<IP> \"hostname\"",
+      "nmap -p22 -sV --script \"ssh2-enum-algos,ssh-hostkey\" <IP>",
+      "rsync rsync://<IP>/",
+      "nmap -p512-514 -sV <IP>"
+    ],
+    description: "Complete reference for enumerating and connecting to remote management services on both Windows and Linux targets.",
+    body: `<h3>Windows Remote Management</h3>
+<h3>RDP (3389/tcp)</h3>
+<p>Encrypted GUI access. Check for NLA/CredSSP, TLS vs legacy, account lockout/MFA.</p>
+<div class="cmd-block">nmap -p3389 --script "rdp-enum-encryption,rdp-ntlm-info,rdp-vuln-ms12-020" &lt;IP&gt;
+xfreerdp /v:&lt;IP&gt; /u:&lt;USER&gt; /p:&lt;PASS&gt; /cert:ignore /dynamic-resolution</div>
+<h3>WinRM (5985/http, 5986/https)</h3>
+<p>PowerShell remoting. Prefer 5986 (HTTPS).</p>
+<div class="cmd-block">nmap -p5985,5986 --script http-title,http-auth-finder &lt;IP&gt;
+evil-winrm -i &lt;IP&gt; -u &lt;USER&gt; -p &lt;PASS&gt;</div>
+<h3>WMI / DCOM (135/tcp + dynamic high ports)</h3>
+<div class="cmd-block">nmap -p135,139,445 &lt;IP&gt;
+impacket-wmiexec &lt;DOMAIN&gt;/&lt;USER&gt;:&lt;PASS&gt;@&lt;IP&gt; "hostname"</div>
+<hr class="section-divider">
+<h3>Linux Remote Management</h3>
+<h3>SSH (22/tcp)</h3>
+<p>High-risk sshd_config settings to look for: PasswordAuthentication yes, PermitEmptyPasswords yes, PermitRootLogin yes, Protocol 1.</p>
+<div class="cmd-block">nmap -p22 -sV --script "ssh2-enum-algos,ssh-hostkey" &lt;IP&gt;
+ssh-audit &lt;IP&gt;</div>
+<h3>Rsync (873/tcp)</h3>
+<p>Look for anonymous/weakly protected modules.</p>
+<div class="cmd-block">nmap -p873 --script rsync-list-modules &lt;IP&gt;
+rsync rsync://&lt;IP&gt;/
+rsync -av rsync://&lt;IP&gt;/&lt;module&gt;/ ./loot/</div>
+<h3>R-services (512-514/tcp) -- Legacy</h3>
+<p>Unencrypted, trust-based auth. Check /etc/hosts.equiv and ~/.rhosts for dangerous wildcards.</p>
+<div class="cmd-block">nmap -p512-514 -sV &lt;IP&gt;</div>
+<hr class="section-divider">
+<h3>Pentest Checklist (Fast)</h3>
+<ol>
+<li>Identify exposure: 22, 873, 512-514, 3389, 5985/5986, 135 (+445)</li>
+<li>For each: version/banner, security mode, auth methods, anonymous access</li>
+<li>With creds, test lowest-friction first:<br>
+<strong>Windows:</strong> WinRM -> WMI -> RDP<br>
+<strong>Linux:</strong> SSH -> rsync -> r-services</li>
+</ol>`
+  },
+  {
+    id: 16,
+    title: "HTB - DNS Enumeration via NS + Zone Transfer (AXFR)",
+    category: "Labs & Walkthroughs",
+    tags: ["enumeration", "dns", "zone-transfer", "htb"],
+    commands: [
+      "dig @10.129.6.37 inlanefreight.htb NS",
+      "nslookup -type=NS inlanefreight.htb 10.129.6.37",
+      "dig @10.129.6.37 inlanefreight.htb AXFR"
+    ],
+    description: "When reverse DNS returns NXDOMAIN (no PTR record), enumerate the FQDN by asking the target DNS server for the domain's NS record, then attempt a zone transfer.",
+    body: `<h3>Workflow</h3>
+<ol>
+<li>Query for NS records:</li>
+</ol>
+<div class="cmd-block">dig @10.129.6.37 inlanefreight.htb NS
+<span class="comment"># Expected: inlanefreight.htb IN NS ns1.inlanefreight.htb.</span></div>
+<ol start="2">
+<li>Attempt zone transfer (AXFR):</li>
+</ol>
+<div class="cmd-block">dig @10.129.6.37 inlanefreight.htb AXFR
+<span class="comment"># Works only if DNS is misconfigured to allow transfers</span></div>
+<p>This is one of the most common HTB enumeration steps for DNS-focused challenges.</p>`
+  },
+  {
+    id: 17,
+    title: "HTB - SMB Enumeration Box (10.129.202.5)",
+    category: "Labs & Walkthroughs",
+    tags: ["enumeration", "smb", "rpcclient", "smbclient", "htb"],
+    commands: [
+      "nmap -sV -sC -p139,445 10.129.202.5",
+      "rpcclient -U \"\" 10.129.202.5",
+      "rpcclient -U \"\" 10.129.202.5 -N -c \"netsharegetinfo sambashare\"",
+      "smbclient //10.129.202.5/sambashare"
+    ],
+    description: "SMB enumeration workflow: Nmap found Samba smbd 4.6.2 on 139/445. Used rpcclient for null session enum (srvinfo, querydominfo, netshareenumall). Retrieved flag from sambashare/contents/flag.txt via smbclient.",
+    body: `<h3>Step-by-Step</h3>
+<div class="cmd-block"><span class="comment"># 1. Service scan</span>
+nmap -sV -sC -p139,445 10.129.202.5
+
+<span class="comment"># 2. Null session RPC enumeration</span>
+rpcclient -U "" 10.129.202.5
+> srvinfo              <span class="comment"># InlaneFreight SMB server (Samba, Ubuntu)</span>
+> querydominfo         <span class="comment"># domain DEVOPS</span>
+> netshareenumall      <span class="comment"># share: sambashare</span>
+
+<span class="comment"># 3. Share details (no password prompt)</span>
+rpcclient -U "" 10.129.202.5 -N -c "netsharegetinfo sambashare"
+
+<span class="comment"># 4. Access share and get flag</span>
+smbclient //10.129.202.5/sambashare
+> cd contents
+> get flag.txt</div>`
+  },
+  {
+    id: 18,
+    title: "HTB - NFS Enumeration (Practical Commands)",
+    category: "Labs & Walkthroughs",
+    tags: ["enumeration", "nfs", "nmap", "htb"],
+    commands: [
+      "nmap -sV -p111,2049 <IP>",
+      "nmap --script nfs* -p111,2049 <IP>",
+      "showmount -e <IP>",
+      "sudo mount -t nfs <IP>:/ ./target-nfs -o nolock",
+      "sudo umount ./target-nfs"
+    ],
+    description: "Complete NFS enumeration workflow: scan, enumerate exports, mount, explore, and unmount.",
+    body: `<h3>NFS Quick Workflow</h3>
+<div class="cmd-block"><span class="comment"># 1. Scan NFS ports</span>
+nmap -sV -p111,2049 &lt;IP&gt;
+
+<span class="comment"># 2. Enumerate with NSE scripts</span>
+nmap --script nfs* -p111,2049 &lt;IP&gt;
+
+<span class="comment"># 3. List exports</span>
+showmount -e &lt;IP&gt;
+
+<span class="comment"># 4. Mount</span>
+mkdir target-nfs
+sudo mount -t nfs &lt;IP&gt;:/ ./target-nfs -o nolock
+
+<span class="comment"># 5. Explore</span>
+ls -la ./target-nfs
+ls -n ./target-nfs    <span class="comment"># show UID/GID numbers</span>
+
+<span class="comment"># 6. Unmount when done</span>
+sudo umount ./target-nfs</div>
+<hr class="section-divider">
+<h3>10 Commands Worth Memorizing (SMB + NFS)</h3>
+<div class="cmd-block"><span class="comment"># SMB</span>
+1. nmap -sV -sC -p139,445 &lt;IP&gt;
+2. smbclient -L //&lt;IP&gt; -N
+3. rpcclient -U "" &lt;IP&gt; -N
+4. rpcclient -U "" &lt;IP&gt; -N -c "srvinfo"
+5. rpcclient -U "" &lt;IP&gt; -N -c "querydominfo"
+6. rpcclient -U "" &lt;IP&gt; -N -c "netshareenumall"
+7. rpcclient -U "" &lt;IP&gt; -N -c "netsharegetinfo &lt;share&gt;"
+
+<span class="comment"># NFS</span>
+8. nmap --script nfs* -p111,2049 &lt;IP&gt;
+9. showmount -e &lt;IP&gt;
+10. sudo mount -t nfs &lt;IP&gt;:/ &lt;mountdir&gt; -o nolock</div>`
+  },
+  {
+    id: 19,
+    title: "HTB Hard Lab -- Nmap Source Port Evasion (53/DNS)",
+    category: "Labs & Walkthroughs",
+    tags: ["nmap", "firewall-evasion", "ids-bypass", "htb"],
+    commands: [
+      "sudo nmap -sV -Pn --disable-arp-ping --source-port 53 <target>",
+      "sudo ncat -nv --source-port 53 <target> <port>",
+      "sudo ss -lpn sport = :53"
+    ],
+    description: "Technique for bypassing firewalls that whitelist traffic from trusted source ports like DNS (53). Some IDS/IPS rulesets are more permissive with traffic appearing to come from trusted ports.",
+    body: `<h3>When to Try This</h3>
+<ul>
+<li>A port looks closed/filtered but context suggests it should be reachable</li>
+<li>The lab mentions firewall rules or IDS/IPS evasion</li>
+<li>Normal connection times out but succeeds with a trusted source port</li>
+</ul>
+<h3>Core Commands</h3>
+<div class="cmd-block"><span class="comment"># Scan with source port spoofing</span>
+sudo nmap -sV -Pn --disable-arp-ping --source-port 53 &lt;target&gt;
+
+<span class="comment"># Connect to filtered service with trusted source port</span>
+sudo ncat -nv --source-port 53 &lt;target&gt; &lt;port&gt;
+
+<span class="comment"># If port 53 is in use locally, find the process</span>
+sudo ss -lpn sport = :53
+sudo kill &lt;PID&gt;</div>
+<h3>Other Trusted Source Ports to Try</h3>
+<div class="cmd-block">sudo ncat -nv --source-port 80 &lt;target&gt; &lt;port&gt;     <span class="comment"># HTTP</span>
+sudo ncat -nv --source-port 443 &lt;target&gt; &lt;port&gt;    <span class="comment"># HTTPS</span>
+sudo ncat -nv --source-port 3306 &lt;target&gt; &lt;port&gt;   <span class="comment"># MySQL</span>
+sudo ncat -nv --source-port 21 &lt;target&gt; &lt;port&gt;     <span class="comment"># FTP</span></div>
+<h3>More Evasion Techniques</h3>
+<div class="cmd-block"><span class="comment"># ACK scan (firewall rule mapping)</span>
+sudo nmap -sA --source-port 53 -Pn &lt;target&gt;
+
+<span class="comment"># Fragmentation</span>
+sudo nmap -f -Pn --disable-arp-ping &lt;target&gt;
+sudo nmap -ff -Pn --disable-arp-ping &lt;target&gt;   <span class="comment"># double fragmentation</span>
+
+<span class="comment"># Decoy scanning</span>
+sudo nmap -D RND:10 -Pn &lt;target&gt;                <span class="comment"># 10 random decoys</span>
+sudo nmap -D 192.168.1.1,ME &lt;target&gt;            <span class="comment"># specific decoy + you</span>
+
+<span class="comment"># Timing evasion (slow scans)</span>
+sudo nmap -T0 -Pn &lt;target&gt;   <span class="comment"># paranoid</span>
+sudo nmap -T1 -Pn &lt;target&gt;   <span class="comment"># sneaky</span></div>
+<p><strong>Key takeaway:</strong> The technique is not specifically about port 53. It is about finding what the firewall trusts and impersonating that traffic.</p>`
+  },
+  {
+    id: 20,
+    title: "SMTP Footprinting Lab (Question 2+1)",
+    category: "Labs & Walkthroughs",
+    tags: ["enumeration", "smtp", "nmap", "htb"],
+    commands: [
+      "sudo nmap 10.129.x.x -sC -sV -p25",
+      "telnet 10.129.x.x 25",
+      "smtp-user-enum -M VRFY -U /usr/share/wordlists/... -t 10.129.x.x"
+    ],
+    description: "SMTP Footprinting lab -- banner/hostname discovery + VRFY user enumeration. Check the SMTP EHLO response for the server hostname.",
+    body: `<div class="cmd-block"><span class="comment"># 1. Nmap SMTP scan</span>
+sudo nmap 10.129.x.x -sC -sV -p25
+
+<span class="comment"># 2. Manual banner grab + VRFY</span>
+telnet 10.129.x.x 25
+VRFY root
+VRFY admin
+
+<span class="comment"># 3. Automated user enumeration</span>
+smtp-user-enum -M VRFY -U /usr/share/wordlists/... -t 10.129.x.x</div>
+<p>Check the EHLO response for <span class="inline-code">myhostname</span> / <span class="inline-code">mail*.inlanefreight.htb</span>.</p>`
+  },
+  {
+    id: 21,
+    title: "Footprinting Medium Lab -- Full Walkthrough",
+    category: "Labs & Walkthroughs",
+    tags: ["nfs", "smb", "rdp", "mssql", "htb", "walkthrough"],
+    commands: [
+      "nmap -p- --min-rate 2000 -T4 <target>",
+      "showmount -e <target>",
+      "sudo mount -t nfs <target>:/TechSupport ~/target-nfs",
+      "crackmapexec smb <target> -u alex -p 'lol123!mD'",
+      "smbclient -L //<target> -U alex%'lol123!mD'",
+      "xfreerdp /u:alex /p:'lol123!mD' /v:<target> /clipboard /cert:ignore"
+    ],
+    description: "HTB Academy Footprinting Lab (Medium). Goal: recover the HTB user password by chaining NFS -> SMB -> RDP -> local MSSQL.",
+    body: `<h3>Attack Chain Summary</h3>
+<ol>
+<li><strong>Scan</strong> -- Found NFS, SMB, RDP, WinRM</li>
+<li><strong>NFS</strong> -- showmount -> /TechSupport export</li>
+<li><strong>Mount NFS</strong> -- Inspect ticket files</li>
+<li><strong>Creds found</strong> -- alex:lol123!mD (from ticket4238791283782.txt)</li>
+<li><strong>SMB with alex</strong> -- Enumerate shares</li>
+<li><strong>devshare/important.txt</strong> -- sa:87N1ns@slls83</li>
+<li><strong>MSSQL remote = dead end</strong> -- Ports 1433/1434 closed</li>
+<li><strong>RDP as alex</strong> -- Open SQL Server Management Studio locally</li>
+<li><strong>Browse DB</strong> -- Accounts -> dbo.devsacc -> HTB password</li>
+</ol>
+<hr class="section-divider">
+<h3>Step 1: Port Scan</h3>
+<div class="cmd-block">nmap -p- --min-rate 2000 -T4 &lt;target&gt;
+nmap -sV -sC -p 111,135,139,445,2049,3389,5985 &lt;target&gt;</div>
+<h3>Step 2: NFS Enumeration</h3>
+<div class="cmd-block">showmount -e &lt;target&gt;
+mkdir -p ~/target-nfs
+sudo mount -t nfs &lt;target&gt;:/TechSupport ~/target-nfs
+cd ~/target-nfs/TechSupport
+
+<span class="comment"># Find non-empty files among many tickets</span>
+sha1sum *.txt | sort | awk '{print $1}' | uniq -c
+cat ticket4238791283782.txt
+<span class="comment"># Credential: alex : lol123!mD</span></div>
+<h3>Step 3: SMB Enumeration</h3>
+<div class="cmd-block">crackmapexec smb &lt;target&gt; -u alex -p 'lol123!mD'
+smbclient -L //&lt;target&gt; -U alex%'lol123!mD'
+smbmap -H &lt;target&gt; -u alex -p 'lol123!mD'
+smbmap -H &lt;target&gt; -u alex -p 'lol123!mD' -R Users</div>
+<h3>Step 4: MSSQL Creds from devshare</h3>
+<div class="cmd-block">smbclient //&lt;target&gt;/devshare -U alex%'lol123!mD'
+<span class="comment"># important.txt contains: sa:87N1ns@slls83</span></div>
+<h3>Step 5: RDP + Local SQL</h3>
+<div class="cmd-block">xfreerdp /u:alex /p:'lol123!mD' /v:&lt;target&gt; /clipboard /cert:ignore
+<span class="comment"># Inside RDP: open SQL Server Management Studio</span>
+<span class="comment"># Connect as sa -> Browse Accounts -> dbo.devsacc -> HTB password</span></div>
+<div class="desc-block"><strong>Key Lesson:</strong> When you find working SMB creds for a desktop user, sa credentials in a file, SSMS artifacts on the profile, and remote MSSQL is closed -- the right move is: RDP into the box and use SQL locally.</div>
+<h3>Commands Worth Memorizing</h3>
+<div class="cmd-block">showmount -e &lt;target&gt;
+sudo mount -t nfs &lt;target&gt;:/TechSupport ~/target-nfs
+sha1sum *.txt | sort | awk '{print $1}' | uniq -c
+crackmapexec smb &lt;target&gt; -u alex -p 'lol123!mD'
+smbclient -L //&lt;target&gt; -U alex%'lol123!mD'
+xfreerdp /u:alex /p:'lol123!mD' /v:&lt;target&gt; /clipboard /cert:ignore</div>`
+  },
+  {
+    id: 22,
+    title: "Responder LLMNR Poisoning",
+    category: "Exploitation & Active Directory",
+    tags: ["active-directory", "responder", "llmnr", "ntlm"],
+    commands: ["responder -I <interface> -wf"],
+    description: "Captures NTLM hashes by poisoning LLMNR, NBT-NS, and MDNS requests on the network. Use in Active Directory environments to capture credentials when users mistype share names or when automatic authentication occurs.",
+    body: `<div class="cmd-block">responder -I &lt;interface&gt; -wf</div>
+<h3>Flags</h3>
+<ul>
+<li><span class="inline-code">-w</span>: starts WPAD rogue server</li>
+<li><span class="inline-code">-f</span>: forces NTLM/Basic authentication</li>
+</ul>
+<p>Run this on the internal network and wait for NTLM hashes. Crack captured hashes with hashcat or john.</p>`
+  },
+  {
+    id: 23,
+    title: "Linux SUID Binary Enumeration",
+    category: "Privilege Escalation",
+    tags: ["privilege-escalation", "suid", "linux", "enumeration"],
+    commands: ["find / -perm -4000 -type f 2>/dev/null"],
+    description: "Searches the entire filesystem for files with the SUID bit set. SUID binaries run with the permissions of their owner (often root), making them prime targets for privilege escalation.",
+    body: `<div class="cmd-block">find / -perm -4000 -type f 2>/dev/null</div>
+<p>Review discovered binaries against <strong>GTFOBins</strong> for known exploitation techniques. Common SUID targets include:</p>
+<ul>
+<li><span class="inline-code">bash</span>, <span class="inline-code">python</span>, <span class="inline-code">find</span>, <span class="inline-code">vim</span></li>
+<li><span class="inline-code">nmap</span> (older versions with interactive mode)</li>
+<li>Custom/unusual binaries</li>
+</ul>`
+  },
+  {
+    id: 24,
+    title: "Python TTY Shell Upgrade",
+    category: "Tools & Techniques",
+    tags: ["shell", "linux", "post-exploitation"],
+    commands: ["python3 -c 'import pty; pty.spawn(\"/bin/bash\")'"],
+    description: "Upgrades a basic reverse shell to a fully interactive TTY. Essential after getting initial shell access for tab completion, job control, and proper terminal behavior.",
+    body: `<div class="cmd-block"><span class="comment"># Step 1: Spawn TTY</span>
+python3 -c 'import pty; pty.spawn("/bin/bash")'
+
+<span class="comment"># Step 2: Background the shell</span>
+Ctrl+Z
+
+<span class="comment"># Step 3: Fix terminal settings</span>
+stty raw -echo; fg
+
+<span class="comment"># Step 4: Set terminal type</span>
+export TERM=xterm</div>`
+  }
+];
+
+// --- App Logic ---
+const categories = {};
+const allTags = {};
+
+NOTES.forEach(n => {
+  if (!categories[n.category]) categories[n.category] = [];
+  categories[n.category].push(n);
+  n.tags.forEach(t => { allTags[t] = (allTags[t] || 0) + 1; });
+});
+
+const catColors = {
+  "Scanning & Enumeration": "var(--accent)",
+  "Footprinting": "var(--accent2)",
+  "Labs & Walkthroughs": "var(--accent3)",
+  "Exploitation & Active Directory": "var(--accent4)",
+  "Privilege Escalation": "var(--accent5)",
+  "Tools & Techniques": "#79c0ff"
+};
+const catClasses = {
+  "Scanning & Enumeration": "sc-scan",
+  "Footprinting": "sc-foot",
+  "Labs & Walkthroughs": "sc-lab",
+  "Exploitation & Active Directory": "sc-exploit",
+  "Privilege Escalation": "sc-privesc",
+  "Tools & Techniques": "sc-tool"
+};
+
+let activeTag = null;
+let activeNoteId = null;
+
+function renderSidebar(filter = "") {
+  const container = document.getElementById("categories");
+  container.innerHTML = "";
+  const lf = filter.toLowerCase();
+
+  Object.keys(categories).forEach(cat => {
+    let notes = categories[cat].filter(n => {
+      if (activeTag && !n.tags.includes(activeTag)) return false;
+      if (!lf) return true;
+      return n.title.toLowerCase().includes(lf) ||
+             n.description.toLowerCase().includes(lf) ||
+             n.commands.some(c => c.toLowerCase().includes(lf)) ||
+             n.tags.some(t => t.toLowerCase().includes(lf));
+    });
+    if (notes.length === 0) return;
+
+    const group = document.createElement("div");
+    group.className = "cat-group";
+
+    const header = document.createElement("div");
+    header.className = "cat-header";
+    header.style.color = catColors[cat] || "var(--text-dim)";
+    header.innerHTML = `<span class="arrow">&#9660;</span>${cat}<span class="count">${notes.length}</span>`;
+    header.onclick = () => header.classList.toggle("collapsed");
+    group.appendChild(header);
+
+    const items = document.createElement("div");
+    items.className = "cat-items";
+    notes.forEach(n => {
+      const link = document.createElement("a");
+      link.className = "note-link" + (n.id === activeNoteId ? " active" : "");
+      link.textContent = n.title;
+      link.onclick = () => showNote(n.id);
+      items.appendChild(link);
+    });
+    group.appendChild(items);
+    container.appendChild(group);
+  });
+
+  document.getElementById("stats").textContent = `${NOTES.length} notes across ${Object.keys(categories).length} categories`;
+}
+
+function renderStatCards() {
+  const container = document.getElementById("stat-cards");
+  container.innerHTML = "";
+  Object.keys(categories).forEach(cat => {
+    const card = document.createElement("div");
+    card.className = "stat-card " + (catClasses[cat] || "");
+    card.innerHTML = `<div class="num">${categories[cat].length}</div><div class="label">${cat}</div>`;
+    card.style.cursor = "pointer";
+    card.onclick = () => {
+      document.getElementById("search-box").value = "";
+      activeTag = null;
+      renderTagCloud();
+      renderSidebar();
+      // scroll sidebar to this category
+    };
+    container.appendChild(card);
+  });
+}
+
+function renderTagCloud() {
+  const container = document.getElementById("tag-cloud");
+  container.innerHTML = "";
+  Object.keys(allTags).sort().forEach(tag => {
+    const pill = document.createElement("span");
+    pill.className = "tag-pill" + (tag === activeTag ? " active" : "");
+    pill.textContent = `${tag} (${allTags[tag]})`;
+    pill.onclick = () => {
+      activeTag = activeTag === tag ? null : tag;
+      renderTagCloud();
+      renderSidebar(document.getElementById("search-box").value);
+    };
+    container.appendChild(pill);
+  });
+}
+
+function showNote(id) {
+  activeNoteId = id;
+  const note = NOTES.find(n => n.id === id);
+  if (!note) return;
+
+  document.getElementById("welcome").style.display = "none";
+  document.getElementById("note-view").style.display = "block";
+
+  document.getElementById("nv-category").textContent = note.category;
+  document.getElementById("nv-category").style.color = catColors[note.category] || "var(--text-dim)";
+  document.getElementById("nv-title").textContent = note.title;
+
+  const tagsEl = document.getElementById("nv-tags");
+  tagsEl.innerHTML = "";
+  note.tags.forEach(t => {
+    const s = document.createElement("span");
+    s.className = "note-tag";
+    s.textContent = t;
+    tagsEl.appendChild(s);
+  });
+
+  let bodyHTML = "";
+  if (note.description) {
+    bodyHTML += `<div class="desc-block">${note.description}</div>`;
+  }
+  if (note.commands.length > 0) {
+    bodyHTML += `<h3>Commands</h3>`;
+    note.commands.forEach(cmd => {
+      bodyHTML += `<div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)">Copy</button>${escapeHtml(cmd)}</div>`;
+    });
+  }
+  if (note.body) {
+    bodyHTML += `<hr class="section-divider">${note.body}`;
+  }
+
+  document.getElementById("nv-body").innerHTML = bodyHTML;
+
+  // Add copy buttons to all cmd-blocks that don't have one
+  document.querySelectorAll("#nv-body .cmd-block").forEach(block => {
+    if (!block.querySelector(".copy-btn")) {
+      const btn = document.createElement("button");
+      btn.className = "copy-btn";
+      btn.textContent = "Copy";
+      btn.onclick = function() { copyCmd(this); };
+      block.prepend(btn);
+    }
+  });
+
+  renderSidebar(document.getElementById("search-box").value);
+  document.getElementById("main").scrollTop = 0;
+}
+
+function showWelcome() {
+  activeNoteId = null;
+  document.getElementById("welcome").style.display = "block";
+  document.getElementById("note-view").style.display = "none";
+  renderSidebar();
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+function copyCmd(btn) {
+  const block = btn.parentElement;
+  const text = block.textContent.replace("Copy", "").replace("Copied!", "").trim();
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = "Copied!";
+    setTimeout(() => btn.textContent = "Copy", 1500);
+  });
+}
+
+// Search
+document.getElementById("search-box").addEventListener("input", function() {
+  renderSidebar(this.value);
+});
+
+// Keyboard shortcut
+document.addEventListener("keydown", e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+    e.preventDefault();
+    document.getElementById("search-box").focus();
+  }
+  if (e.key === "Escape") {
+    document.getElementById("search-box").value = "";
+    activeTag = null;
+    renderTagCloud();
+    showWelcome();
+  }
+});
+
+// Init
+renderSidebar();
+renderStatCards();
+renderTagCloud();
+</script>
+</body>
+</html>
