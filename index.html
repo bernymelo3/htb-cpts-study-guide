@@ -117,11 +117,40 @@
     .mobile-toggle { display: block !important; }
   }
   .mobile-toggle { display: none; position: fixed; top: 12px; left: 12px; z-index: 20; background: var(--bg-card); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 16px; }
+
+  /* Enhancements */
+  .note-nav { display: flex; gap: 12px; margin-bottom: 20px; align-items: center; }
+  .nav-btn { padding: 6px 12px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-dim); border-radius: 4px; cursor: pointer; font-size: 12px; transition: all 0.15s; }
+  .nav-btn:hover { color: var(--text); border-color: var(--accent); }
+  .nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .nav-counter { font-size: 12px; color: var(--text-dim); }
+  .breadcrumb { font-size: 12px; color: var(--text-dim); margin-bottom: 16px; }
+  .breadcrumb a { color: var(--accent); cursor: pointer; text-decoration: none; }
+  .breadcrumb a:hover { text-decoration: underline; }
+  .quick-access { margin: 12px 0; padding: 8px; background: var(--bg-card); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; font-size: 12px; }
+  .quick-access strong { color: var(--text); }
+  .related-notes { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); }
+  .related-notes h3 { font-size: 14px; margin-bottom: 12px; color: var(--text-dim); }
+  .related-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+  .related-item { padding: 8px 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 12px; transition: all 0.15s; }
+  .related-item:hover { background: var(--bg-hover); border-color: var(--accent); }
+  .export-menu { position: fixed; bottom: 20px; right: 20px; display: flex; gap: 8px; }
+  .export-btn { padding: 8px 12px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-dim); border-radius: 4px; cursor: pointer; font-size: 11px; }
+  .export-btn:hover { color: var(--text); border-color: var(--accent); }
+  .theme-toggle { position: fixed; bottom: 20px; left: 20px; padding: 8px 12px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-dim); border-radius: 4px; cursor: pointer; font-size: 14px; }
+  .theme-toggle:hover { border-color: var(--accent); }
+  body.light-theme { --bg-dark: #ffffff; --bg-card: #f6f8fa; --bg-sidebar: #f6f8fa; --bg-hover: #eaeef2; --bg-active: #1f6feb22; --border: #d0d7de; --text: #24292f; --text-dim: #57606a; --code-bg: #f6f8fa; }
+  body.light-theme .cmd-block { border: 1px solid #d0d7de; }
 </style>
 </head>
 <body>
 
 <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">&#9776;</button>
+<button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+<div class="export-menu">
+  <button class="export-btn" onclick="exportAsJSON()">JSON</button>
+  <button class="export-btn" onclick="exportAsMarkdown()">Markdown</button>
+</div>
 
 <div id="sidebar">
   <div id="sidebar-header">
@@ -144,10 +173,18 @@
     </div>
   </div>
   <div id="note-view">
+    <div class="breadcrumb" id="nv-breadcrumb"></div>
+    <div class="note-nav">
+      <button class="nav-btn" id="prev-btn" onclick="prevNote()">← Previous</button>
+      <span class="nav-counter" id="nav-counter"></span>
+      <button class="nav-btn" id="next-btn" onclick="nextNote()">Next →</button>
+    </div>
     <div class="note-category" id="nv-category"></div>
     <h2 id="nv-title"></h2>
     <div class="note-tags" id="nv-tags"></div>
+    <div class="quick-access" id="nv-quick" style="display:none;"></div>
     <div class="note-body" id="nv-body"></div>
+    <div class="related-notes" id="nv-related" style="display:none;"></div>
   </div>
 </div>
 
@@ -752,11 +789,22 @@ const catClasses = {
 
 let activeTag = null;
 let activeNoteId = null;
+let filteredNotes = [...NOTES];
 
 function renderSidebar(filter = "") {
   const container = document.getElementById("categories");
   container.innerHTML = "";
   const lf = filter.toLowerCase();
+
+  // Update filteredNotes for nav buttons
+  filteredNotes = NOTES.filter(n => {
+    if (activeTag && !n.tags.includes(activeTag)) return false;
+    if (!lf) return true;
+    return n.title.toLowerCase().includes(lf) ||
+           n.description.toLowerCase().includes(lf) ||
+           n.commands.some(c => c.toLowerCase().includes(lf)) ||
+           n.tags.some(t => t.toLowerCase().includes(lf));
+  });
 
   Object.keys(categories).forEach(cat => {
     let notes = categories[cat].filter(n => {
@@ -838,6 +886,9 @@ function showNote(id) {
   document.getElementById("welcome").style.display = "none";
   document.getElementById("note-view").style.display = "block";
 
+  // Breadcrumb
+  document.getElementById("nv-breadcrumb").innerHTML = `<a onclick="showWelcome()">CPTS Notes</a> / <strong>${note.category}</strong>`;
+
   document.getElementById("nv-category").textContent = note.category;
   document.getElementById("nv-category").style.color = catColors[note.category] || "var(--text-dim)";
   document.getElementById("nv-title").textContent = note.title;
@@ -850,6 +901,15 @@ function showNote(id) {
     s.textContent = t;
     tagsEl.appendChild(s);
   });
+
+  // Quick access tip
+  const quickEl = document.getElementById("nv-quick");
+  if (note.commands.length > 0) {
+    quickEl.innerHTML = `<strong>Tip:</strong> ${note.commands.length} commands available — hover and click copy to use them.`;
+    quickEl.style.display = "block";
+  } else {
+    quickEl.style.display = "none";
+  }
 
   let bodyHTML = "";
   if (note.description) {
@@ -878,8 +938,45 @@ function showNote(id) {
     }
   });
 
+  // Related notes (same category/tags)
+  const related = NOTES.filter(n =>
+    n.id !== id && (n.category === note.category || n.tags.some(t => note.tags.includes(t)))
+  ).slice(0, 5);
+
+  if (related.length > 0) {
+    const relEl = document.getElementById("nv-related");
+    relEl.innerHTML = `<h3>Related Notes</h3><div class="related-items">${related.map(r =>
+      `<div class="related-item" onclick="showNote(${r.id})">${r.title}</div>`
+    ).join("")}</div>`;
+    relEl.style.display = "block";
+  } else {
+    document.getElementById("nv-related").style.display = "none";
+  }
+
+  updateNavButtons();
   renderSidebar(document.getElementById("search-box").value);
   document.getElementById("main").scrollTop = 0;
+}
+
+function updateNavButtons() {
+  const currentIdx = filteredNotes.findIndex(n => n.id === activeNoteId);
+  const prevBtn = document.getElementById("prev-btn");
+  const nextBtn = document.getElementById("next-btn");
+  const counter = document.getElementById("nav-counter");
+
+  prevBtn.disabled = currentIdx <= 0;
+  nextBtn.disabled = currentIdx >= filteredNotes.length - 1;
+  counter.textContent = `${currentIdx + 1} / ${filteredNotes.length}`;
+}
+
+function prevNote() {
+  const currentIdx = filteredNotes.findIndex(n => n.id === activeNoteId);
+  if (currentIdx > 0) showNote(filteredNotes[currentIdx - 1].id);
+}
+
+function nextNote() {
+  const currentIdx = filteredNotes.findIndex(n => n.id === activeNoteId);
+  if (currentIdx < filteredNotes.length - 1) showNote(filteredNotes[currentIdx + 1].id);
 }
 
 function showWelcome() {
@@ -907,7 +1004,7 @@ document.getElementById("search-box").addEventListener("input", function() {
   renderSidebar(this.value);
 });
 
-// Keyboard shortcut
+// Keyboard shortcuts
 document.addEventListener("keydown", e => {
   if ((e.metaKey || e.ctrlKey) && e.key === "k") {
     e.preventDefault();
@@ -919,7 +1016,48 @@ document.addEventListener("keydown", e => {
     renderTagCloud();
     showWelcome();
   }
+  if (activeNoteId) {
+    if (e.key === "ArrowLeft") prevNote();
+    if (e.key === "ArrowRight") nextNote();
+  }
 });
+
+function toggleTheme() {
+  document.body.classList.toggle("light-theme");
+  localStorage.setItem("cpts-theme", document.body.classList.contains("light-theme") ? "light" : "dark");
+}
+
+function exportAsJSON() {
+  const data = { notes: NOTES, exportDate: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "cpts-notes.json";
+  a.click();
+}
+
+function exportAsMarkdown() {
+  let md = "# CPTS Knowledge Base\n\n";
+  Object.keys(categories).forEach(cat => {
+    md += `\n## ${cat}\n\n`;
+    categories[cat].forEach(n => {
+      md += `### ${n.title}\n\n`;
+      if (n.description) md += `${n.description}\n\n`;
+      if (n.commands.length > 0) {
+        md += "**Commands:**\n\n";
+        n.commands.forEach(cmd => md += `\`\`\`\n${cmd}\n\`\`\`\n\n`);
+      }
+      md += "---\n\n";
+    });
+  });
+  const blob = new Blob([md], { type: "text/markdown" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "cpts-notes.md";
+  a.click();
+}
 
 // Init
 renderSidebar();
