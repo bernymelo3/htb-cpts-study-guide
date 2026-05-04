@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>LDAP, Building Blocks & Protocols — Interactive</title>
+<style>
+  :root {
+    --bg: #0A0A0A;
+    --panel: #0e0e0e;
+    --panel-2: #0a0a0a;
+    --border: #1a1a1a;
+    --border-hover: #2a2a2a;
+    --text: rgba(255,255,255,0.9);
+    --muted: rgba(255,255,255,0.4);
+    --dim: rgba(255,255,255,0.55);
+    --accent: #00FF41;
+    --accent-dim: rgba(0,255,65,0.6);
+    --accent-faint: rgba(0,255,65,0.08);
+    --green: #00FF41;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --purple: #a78bfa;
+    --yellow: #fbbf24;
+    --pink: #ec4899;
+    --info: #38bdf8;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; padding: 24px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    background-image:
+      radial-gradient(ellipse at top, rgba(0,255,65,0.04), transparent 60%),
+      radial-gradient(ellipse at bottom right, rgba(56,189,248,0.02), transparent 50%);
+    background-attachment: fixed;
+  }
+  ::selection { background: rgba(0,255,65,0.25); color: #fff; }
+  .container { max-width: 1280px; margin: 0 auto; }
+
+  header { margin-bottom: 32px; }
+  h1 {
+    margin: 0 0 8px; font-size: 28px; font-weight: 600;
+    color: var(--accent);
+    text-shadow: 0 0 24px rgba(0,255,65,0.25);
+    letter-spacing: -0.01em;
+  }
+  h1::before { content: '> '; color: var(--accent-dim); font-family: 'JetBrains Mono', monospace; }
+  .subtitle { color: var(--muted); font-size: 13px; font-family: 'JetBrains Mono', monospace; }
+
+  nav.toc {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    margin: 16px 0 24px;
+    padding: 12px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent-dim);
+    border-radius: 8px;
+  }
+  nav.toc a {
+    padding: 5px 12px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: all 0.15s;
+  }
+  nav.toc a:hover { background: var(--accent-faint); border-color: var(--accent-dim); color: var(--accent); box-shadow: 0 0 12px rgba(0,255,65,0.2); }
+
+  section {
+    margin-bottom: 32px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 28px;
+    position: relative;
+  }
+  section::before {
+    content: ''; position: absolute; top: 0; left: 24px; right: 24px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
+    opacity: 0.5;
+  }
+  h2 {
+    margin: 0 0 20px;
+    font-size: 18px;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  h2::before { content: '// '; color: var(--accent-dim); font-family: 'JetBrains Mono', monospace; font-weight: 400; }
+  h3 { margin: 24px 0 12px; font-size: 14px; color: var(--accent); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+  h3::before { content: '> '; color: var(--accent-dim); font-family: 'JetBrains Mono', monospace; }
+  h4 { margin: 16px 0 8px; font-size: 13px; color: var(--text); font-weight: 600; }
+
+  p, li { font-size: 13.5px; color: var(--dim); }
+  p strong, li strong { color: var(--text); }
+  code {
+    background: #050505;
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+    font-size: 12px;
+    color: var(--accent);
+  }
+  pre {
+    background: #050505;
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent-dim);
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 12.5px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  pre code { background: none; border: none; padding: 0; color: var(--text); }
+
+  /* ===== LDAP DN BREAKDOWN ===== */
+  .dn-breakdown {
+    background: #050505;
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent-dim);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 16px 0;
+    text-align: center;
+  }
+  .dn-string {
+    font-family: 'SF Mono', Menlo, monospace;
+    font-size: 18px;
+    line-height: 2.4;
+    word-break: break-all;
+  }
+  .dn-part {
+    display: inline-block;
+    padding: 4px 8px;
+    margin: 2px;
+    border-radius: 4px;
+    cursor: help;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+  .dn-part:hover { transform: translateY(-2px); border-color: currentColor; }
+  .dn-cn { background: rgba(56, 189, 248, 0.15); color: var(--info); }
+  .dn-ou { background: rgba(245, 158, 11, 0.15); color: var(--warn); }
+  .dn-dc { background: rgba(0, 255, 65, 0.12); color: var(--accent); }
+  .dn-comma { color: var(--muted); padding: 0 4px; }
+
+  /* ===== LDAP TREE ===== */
+  .ldap-tree {
+    background: #050505;
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent-dim);
+    border-radius: 8px;
+    padding: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.8;
+  }
+  .tree-line { display: flex; align-items: center; padding: 2px 6px; cursor: help; transition: all 0.15s; border-radius: 3px; }
+  .tree-line:hover { background: rgba(0, 255, 65, 0.06); transform: translateX(3px); }
+  .tree-indent { color: var(--muted); white-space: pre; }
+  .tree-icon { margin-right: 6px; }
+
+  /* ===== FILTER PARSER ===== */
+  .filter-demo {
+    background: #050505;
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent-dim);
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin: 10px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    cursor: help;
+    transition: all 0.15s;
+  }
+  .filter-demo:hover { border-left-color: var(--accent); box-shadow: 0 0 12px rgba(0,255,65,0.1); }
+  .filter-demo .op { color: var(--purple); font-weight: 700; }
+  .filter-demo .attr { color: var(--info); }
+  .filter-demo .val { color: var(--accent); }
+  .filter-demo .paren { color: var(--muted); }
+
+  /* ===== BUILDING BLOCK CARDS ===== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .card {
+    background: #0c0c0c;
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent-color, var(--accent));
+    border-radius: 6px;
+    padding: 16px;
+    transition: all 0.2s;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-color, var(--accent));
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6), 0 0 18px rgba(0,255,65,0.08);
+  }
+  .card.expanded {
+    border-color: var(--accent-color, var(--accent));
+    box-shadow: 0 0 20px rgba(0,255,65,0.12);
+  }
+  .card .icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+    display: block;
+  }
+  .card h4 {
+    margin: 0 0 4px;
+    font-size: 15px;
+    color: var(--accent-color, var(--accent));
+  }
+  .card .analogy {
+    color: var(--muted);
+    font-size: 12px;
+    font-style: italic;
+    margin-bottom: 8px;
+  }
+  .card .desc { font-size: 13px; color: var(--text); }
+  .card.expanded .extra { display: block; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); }
+  .card .extra { display: none; font-size: 12px; }
+  .card .extra strong { color: var(--warn); }
+
+  /* color overrides per card */
+  .card.forest { --accent-color: var(--accent); }
+  .card.domain { --accent-color: var(--info); }
+  .card.ou { --accent-color: var(--warn); }
+  .card.gpo { --accent-color: var(--purple); }
+  .card.dc { --accent-color: var(--danger); }
+  .card.krbtgt { --accent-color: var(--yellow); }
+
+  /* ===== PROTOCOL TABLE ===== */
+  .proto-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 12px;
+  }
+  .proto {
+    background: #0c0c0c;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    padding: 14px 16px;
+    transition: all 0.15s;
+    cursor: help;
+  }
+  .proto:hover { background: #111; transform: translateX(4px); box-shadow: 0 0 16px rgba(0,255,65,0.06); }
+  .proto-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .proto-name { font-weight: 700; font-size: 14px; color: var(--accent); letter-spacing: 0.02em; }
+  .proto-port { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-size: 11px; opacity: 0.7; }
+  .proto-desc { font-size: 12.5px; color: var(--dim); margin-bottom: 6px; }
+  .proto-attack { font-size: 11.5px; color: var(--warn); font-family: 'JetBrains Mono', monospace; }
+  .proto-attack::before { content: '⚔ '; }
+
+  /* per-protocol border colors */
+  .proto.dns { border-left-color: var(--accent); }
+  .proto.dns .proto-name { color: var(--accent); }
+  .proto.kerb { border-left-color: var(--purple); }
+  .proto.kerb .proto-name { color: var(--purple); }
+  .proto.ldap { border-left-color: var(--info); }
+  .proto.ldap .proto-name { color: var(--info); }
+  .proto.gc { border-left-color: var(--yellow); }
+  .proto.gc .proto-name { color: var(--yellow); }
+  .proto.smb { border-left-color: var(--warn); }
+  .proto.smb .proto-name { color: var(--warn); }
+  .proto.rpc { border-left-color: var(--pink); }
+  .proto.rpc .proto-name { color: var(--pink); }
+  .proto.winrm { border-left-color: var(--danger); }
+  .proto.winrm .proto-name { color: var(--danger); }
+  .proto.nbns { border-left-color: var(--muted); }
+  .proto.nbns .proto-name { color: var(--dim); }
+
+  /* ===== TOOLTIP ===== */
+  #tooltip {
+    position: fixed;
+    pointer-events: none;
+    background: #050505;
+    border: 1px solid var(--accent-dim);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    line-height: 1.5;
+    max-width: 360px;
+    color: var(--text);
+    box-shadow: 0 8px 32px rgba(0,255,65,0.15), 0 0 0 1px rgba(0,0,0,0.6);
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 1000;
+  }
+  #tooltip.visible { opacity: 1; }
+  #tooltip .tt-title { font-weight: 700; color: var(--accent); margin-bottom: 4px; font-size: 13px; letter-spacing: 0.02em; }
+  #tooltip .tt-meta { color: var(--muted); font-size: 10px; margin-bottom: 6px; font-style: italic; text-transform: uppercase; letter-spacing: 0.1em; }
+  #tooltip code { background: #000; padding: 1px 5px; border-radius: 3px; font-size: 11px; color: var(--accent); border: 1px solid var(--border); }
+
+  /* ===== LDAP FLOW ===== */
+  .flow-diagram {
+    background: #050505;
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent-dim);
+    border-radius: 8px;
+    padding: 24px;
+    margin: 16px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .flow-node {
+    background: #0c0c0c;
+    border: 1px solid var(--accent-dim);
+    border-radius: 6px;
+    padding: 16px 20px;
+    text-align: center;
+    min-width: 140px;
+    cursor: help;
+    box-shadow: 0 0 16px rgba(0,255,65,0.08);
+  }
+  .flow-node.dc { border-color: var(--danger); box-shadow: 0 0 16px rgba(239,68,68,0.15); }
+  .flow-arrows { display: flex; flex-direction: column; gap: 4px; align-items: center; min-width: 180px; }
+  .flow-arrow { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent); cursor: help; transition: all 0.15s; padding: 2px 6px; border-radius: 3px; }
+  .flow-arrow.req { color: var(--info); }
+  .flow-arrow.res { color: var(--accent); }
+  .flow-arrow:hover { color: var(--warn); background: rgba(245,158,11,0.08); }
+
+  table.cmd-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 13px;
+  }
+  table.cmd-table th, table.cmd-table td {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  table.cmd-table th {
+    background: #050505;
+    color: var(--muted);
+    font-weight: 700;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+  table.cmd-table tr:hover { background: rgba(0,255,65,0.03); }
+
+  .legend-row { display: flex; gap: 18px; margin: 12px 0; flex-wrap: wrap; font-size: 12px; }
+  .legend-row .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
+
+  .tip {
+    background: rgba(0, 255, 65, 0.05);
+    border-left: 3px solid var(--accent);
+    padding: 10px 14px;
+    border-radius: 4px;
+    margin: 12px 0;
+    font-size: 12.5px;
+    color: var(--dim);
+  }
+  .tip strong { color: var(--accent); }
+  .tip.warn {
+    background: rgba(245, 158, 11, 0.06);
+    border-left-color: var(--warn);
+  }
+  .tip.warn strong { color: var(--warn); }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<header>
+  <h1>LDAP, Building Blocks &amp; Core Protocols</h1>
+  <div class="subtitle">Interactive companion to <code>AD-SIMPLE-GUIDE.md</code> — hover or click to learn each piece.</div>
+  <nav class="toc">
+    <a href="#ldap">LDAP Deep Dive</a>
+    <a href="#dn">Distinguished Names</a>
+    <a href="#filters">LDAP Filters</a>
+    <a href="#flow">Bind Flow</a>
+    <a href="#blocks">Building Blocks</a>
+    <a href="#protocols">Protocols</a>
+  </nav>
+</header>
+
+<!-- =================== LDAP =================== -->
+<section id="ldap">
+  <h2>1. LDAP — Lightweight Directory Access Protocol</h2>
+
+  <p><strong>LDAP is the language used to query Active Directory.</strong> Active Directory <em>stores</em> objects (users, computers, groups, OUs) in a hierarchical database; LDAP is the protocol you speak to <em>read or modify</em> them. When BloodHound, PowerView, or <code>ldapsearch</code> ask AD a question, they speak LDAP under the hood.</p>
+
+  <div class="grid" style="grid-template-columns: 1fr 1fr;">
+    <div>
+      <h3>Key facts</h3>
+      <ul>
+        <li><strong>Port 389</strong> (LDAP) — cleartext by default</li>
+        <li><strong>Port 636</strong> (LDAPS) — TLS-wrapped</li>
+        <li><strong>Port 3268 / 3269</strong> — Global Catalog (forest-wide LDAP)</li>
+        <li>Hierarchical (tree-structured) — every object has a path</li>
+        <li>Read-heavy: optimised for <em>reading</em> the directory, not transactional writes</li>
+        <li>Authentication is called a <strong>bind</strong>: anonymous, simple (user+pass), or SASL (Kerberos/NTLM)</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Why an attacker cares</h3>
+      <ul>
+        <li>Anonymous bind sometimes leaks the entire directory</li>
+        <li>Any authenticated user can read most of AD by default</li>
+        <li>Maps users → groups → ACLs — <strong>BloodHound is just LDAP queries + graph theory</strong></li>
+        <li>LDAP signing off + relay = remote DC compromise</li>
+        <li>Reveals <code>servicePrincipalName</code> for Kerberoasting</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- =================== DN BREAKDOWN =================== -->
+<section id="dn">
+  <h2>2. Distinguished Names (DN) — How AD Addresses Things</h2>
+
+  <p>Every object in AD has a unique path called a <strong>Distinguished Name</strong>. Read it <em>right to left</em> — like a postal address that starts specific and gets broader.</p>
+
+  <div class="dn-breakdown">
+    <div class="dn-string">
+      <span class="dn-part dn-cn" data-tip='{"title":"CN — Common Name","meta":"The leaf object","body":"The actual user, computer, or group you’re pointing at. Always the leftmost component of a leaf object."}'>CN=adunn</span>
+      <span class="dn-comma">,</span>
+      <span class="dn-part dn-ou" data-tip='{"title":"OU — Organizational Unit","meta":"Container","body":"A logical folder. OUs receive GPOs and can be nested. Stack them in the DN to walk up the tree."}'>OU=IT&nbsp;Admins</span>
+      <span class="dn-comma">,</span>
+      <span class="dn-part dn-ou" data-tip='{"title":"OU — Organizational Unit (parent)","meta":"Parent container","body":"Higher-level OU. The full OU chain becomes the GPO inheritance path."}'>OU=Corp</span>
+      <span class="dn-comma">,</span>
+      <span class="dn-part dn-dc" data-tip='{"title":"DC — Domain Component","meta":"Domain piece","body":"Each DNS label of the domain becomes a DC component. inlanefreight.local → DC=inlanefreight,DC=local."}'>DC=inlanefreight</span>
+      <span class="dn-comma">,</span>
+      <span class="dn-part dn-dc" data-tip='{"title":"DC — Domain Component","meta":"TLD piece","body":"The trailing piece of the domain. The combined DC components define the domain naming context (e.g., DC=inlanefreight,DC=local)."}'>DC=local</span>
+    </div>
+    <p style="color: var(--muted); margin-top: 12px; font-size: 13px;">Hover any segment. <strong>Read right→left</strong>: domain → OUs → object.</p>
+  </div>
+
+  <h3>Common attribute prefixes</h3>
+  <div class="grid">
+    <div class="card" style="cursor: default;" data-tip='{"title":"CN — Common Name","body":"The display name of the leaf object. Most user/group/computer DNs end (start, when read left-to-right) with CN=..."}'>
+      <h4>CN</h4>
+      <div class="analogy">Common Name</div>
+      <div class="desc">The actual object — a user, group, computer, or container. Example: <code>CN=adunn</code>.</div>
+    </div>
+    <div class="card" style="cursor: default;" data-tip='{"title":"OU — Organizational Unit","body":"A folder. Receives GPOs. Can be nested. Used for delegation of admin rights."}'>
+      <h4>OU</h4>
+      <div class="analogy">Organizational Unit</div>
+      <div class="desc">A folder that holds objects and applies policy. Example: <code>OU=IT Admins</code>.</div>
+    </div>
+    <div class="card" style="cursor: default;" data-tip='{"title":"DC — Domain Component","body":"One DNS label of the domain. inlanefreight.local → DC=inlanefreight,DC=local. Defines the domain naming context."}'>
+      <h4>DC</h4>
+      <div class="analogy">Domain Component</div>
+      <div class="desc">One label of the domain DNS name. <code>inlanefreight.local</code> → <code>DC=inlanefreight,DC=local</code>.</div>
+    </div>
+  </div>
+
+  <div class="tip warn"><strong>Don't confuse:</strong> <code>DC=</code> in a Distinguished Name means <em>Domain Component</em> — it does <strong>not</strong> mean Domain Controller. Same letters, totally different concept.</div>
+</section>
+
+<!-- =================== LDAP TREE =================== -->
+<section>
+  <h2>3. The LDAP Tree (How AD is laid out)</h2>
+  <p>Hover each node to see what lives there.</p>
+
+  <div class="ldap-tree">
+    <div class="tree-line" data-tip='{"title":"Root (forest)","body":"Top of the directory. Configuration + Schema partitions live above the domain.","meta":"forest naming context"}'>
+      <span class="tree-icon">🌲</span><strong>DC=inlanefreight,DC=local</strong> &nbsp;<span style="color: var(--muted);">— forest root domain</span>
+    </div>
+
+    <div class="tree-line" data-tip='{"title":"CN=Users (default container)","body":"Default catch-all for new users + groups. Cannot have GPOs applied — push users into OUs to manage them via policy."}'>
+      <span class="tree-indent">├── </span><span class="tree-icon">📁</span><span style="color: var(--accent);">CN=Users</span>
+      <span style="color: var(--muted);">&nbsp;(default user/group container)</span>
+    </div>
+    <div class="tree-line" data-tip='{"title":"User: Administrator","meta":"objectClass: user","body":"Built-in domain Administrator (RID 500). Cannot be locked out by password policy by default."}'>
+      <span class="tree-indent">│&nbsp;&nbsp;&nbsp;├── </span><span class="tree-icon">👤</span>CN=Administrator
+    </div>
+    <div class="tree-line" data-tip='{"title":"Group: Domain Admins","meta":"objectClass: group","body":"The most powerful security group. Local admin on every domain-joined computer."}'>
+      <span class="tree-indent">│&nbsp;&nbsp;&nbsp;├── </span><span class="tree-icon">👥</span>CN=Domain Admins
+    </div>
+    <div class="tree-line" data-tip='{"title":"Account: krbtgt","meta":"hidden / disabled","body":"The KRBTGT service account. Its NT hash signs every Kerberos ticket. Steal it = forge any ticket = Golden Ticket."}'>
+      <span class="tree-indent">│&nbsp;&nbsp;&nbsp;└── </span><span class="tree-icon">🔑</span><span style="color: var(--yellow);">CN=krbtgt</span> <span style="color: var(--muted);">— forges ALL tickets</span>
+    </div>
+
+    <div class="tree-line" data-tip='{"title":"OU: Domain Controllers","meta":"default OU, GPO-protected","body":"Every DC machine account lives here. Receives the Default Domain Controllers Policy GPO."}'>
+      <span class="tree-indent">├── </span><span class="tree-icon">📂</span><span style="color: var(--warn);">OU=Domain Controllers</span>
+    </div>
+    <div class="tree-line" data-tip='{"title":"Computer: DC01$","body":"DC machine account. The $ suffix marks computer accounts."}'>
+      <span class="tree-indent">│&nbsp;&nbsp;&nbsp;└── </span><span class="tree-icon">🖥</span>CN=DC01
+    </div>
+
+    <div class="tree-line" data-tip='{"title":"OU: Corp","body":"Top-level company OU. Holds nested OUs for departments + tier-0 isolation."}'>
+      <span class="tree-indent">└── </span><span class="tree-icon">📂</span><span style="color: var(--warn);">OU=Corp</span>
+    </div>
+    <div class="tree-line" data-tip='{"title":"OU: IT Admins","body":"Privileged user OU. Often locked down by GPO — restricted logon hosts, PSO password policy."}'>
+      <span class="tree-indent">&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="tree-icon">📂</span><span style="color: var(--warn);">OU=IT Admins</span>
+    </div>
+    <div class="tree-line" data-tip='{"title":"User: adunn","meta":"member of Domain Admins","body":"Privileged user account."}'>
+      <span class="tree-indent">&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── </span><span class="tree-icon">👤</span>CN=adunn
+    </div>
+    <div class="tree-line" data-tip='{"title":"OU: Servers","body":"Member servers (web, SQL, file). GPOs here harden services."}'>
+      <span class="tree-indent">&nbsp;&nbsp;&nbsp;&nbsp;├── </span><span class="tree-icon">📂</span><span style="color: var(--warn);">OU=Servers</span>
+    </div>
+    <div class="tree-line" data-tip='{"title":"Computer: WEB01$","body":"IIS web server."}'>
+      <span class="tree-indent">&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── </span><span class="tree-icon">🖥</span>CN=WEB01
+    </div>
+    <div class="tree-line" data-tip='{"title":"Computer: SQL01$","body":"MSSQL service host. Service account often has SeImpersonate."}'>
+      <span class="tree-indent">&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── </span><span class="tree-icon">🖥</span>CN=SQL01
+    </div>
+    <div class="tree-line" data-tip='{"title":"OU: Workstations","body":"Endpoints. Largest attack surface."}'>
+      <span class="tree-indent">&nbsp;&nbsp;&nbsp;&nbsp;└── </span><span class="tree-icon">📂</span><span style="color: var(--warn);">OU=Workstations</span>
+    </div>
+  </div>
+</section>
+
+<!-- =================== LDAP FILTERS =================== -->
+<section id="filters">
+  <h2>4. LDAP Filters — Querying the Tree</h2>
+  <p>Filters use prefix notation: <code>(operator attribute=value)</code>. Combine with <code>&amp;</code> (AND), <code>|</code> (OR), <code>!</code> (NOT). Hover each example for a breakdown.</p>
+
+  <h3>Basic syntax</h3>
+  <div class="filter-demo" data-tip='{"title":"Equality match","body":"Find every object where objectClass equals user. Returns thousands of results."}'>
+    <span class="paren">(</span><span class="attr">objectClass</span>=<span class="val">user</span><span class="paren">)</span>
+  </div>
+
+  <div class="filter-demo" data-tip='{"title":"AND filter","body":"objectClass = user AND samAccountName = adunn. Both conditions must match."}'>
+    <span class="paren">(</span><span class="op">&amp;</span><span class="paren">(</span><span class="attr">objectClass</span>=<span class="val">user</span><span class="paren">)</span><span class="paren">(</span><span class="attr">samAccountName</span>=<span class="val">adunn</span><span class="paren">)</span><span class="paren">)</span>
+  </div>
+
+  <h3>Attacker's greatest hits</h3>
+
+  <div class="filter-demo" data-tip='{"title":"Find Kerberoastable accounts","body":"All user accounts that have an SPN set. These can be Kerberoasted by any authenticated user.","meta":"the most useful LDAP filter you will ever run"}'>
+    <span class="paren">(</span><span class="op">&amp;</span><span class="paren">(</span><span class="attr">samAccountType</span>=<span class="val">805306368</span><span class="paren">)</span><span class="paren">(</span><span class="attr">servicePrincipalName</span>=<span class="val">*</span><span class="paren">)</span><span class="paren">)</span>
+  </div>
+
+  <div class="filter-demo" data-tip='{"title":"Find AS-REP roastable accounts","body":"UAC bit 4194304 = DONT_REQ_PREAUTH. These users do not require Kerberos pre-authentication, so anyone can request an AS-REP and crack it offline (hashcat 18200)."}'>
+    <span class="paren">(</span><span class="op">&amp;</span><span class="paren">(</span><span class="attr">objectClass</span>=<span class="val">user</span><span class="paren">)</span><span class="paren">(</span><span class="attr">userAccountControl</span>:<span class="val">1.2.840.113556.1.4.803</span>:=<span class="val">4194304</span><span class="paren">)</span><span class="paren">)</span>
+  </div>
+
+  <div class="filter-demo" data-tip='{"title":"Find privileged accounts","body":"adminCount=1 means the account is/was a member of a protected group (Domain Admins, etc.). AdminSDHolder runs every 60 min and re-stamps these. Common shortlist source."}'>
+    <span class="paren">(</span><span class="op">&amp;</span><span class="paren">(</span><span class="attr">objectClass</span>=<span class="val">user</span><span class="paren">)</span><span class="paren">(</span><span class="attr">adminCount</span>=<span class="val">1</span><span class="paren">)</span><span class="paren">)</span>
+  </div>
+
+  <div class="filter-demo" data-tip='{"title":"Find unconstrained delegation hosts","body":"UAC bit 524288 = TRUSTED_FOR_DELEGATION. Any user that authenticates to this host leaves their TGT in LSASS — printer-bug to coerce the DC, dump the TGT, replay = DA."}'>
+    <span class="paren">(</span><span class="attr">userAccountControl</span>:<span class="val">1.2.840.113556.1.4.803</span>:=<span class="val">524288</span><span class="paren">)</span>
+  </div>
+
+  <h3>Bitwise OIDs you'll see everywhere</h3>
+  <table class="cmd-table">
+    <thead><tr><th>OID</th><th>Operator</th><th>Use</th></tr></thead>
+    <tbody>
+      <tr><td><code>1.2.840.113556.1.4.803</code></td><td>Bitwise AND</td><td>Match a single UAC flag (Kerberoast, AS-REP, delegation)</td></tr>
+      <tr><td><code>1.2.840.113556.1.4.804</code></td><td>Bitwise OR</td><td>Match any of several flags</td></tr>
+      <tr><td><code>1.2.840.113556.1.4.1941</code></td><td>Recursive DN match</td><td>Find nested group membership</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Useful UAC bit values</h3>
+  <table class="cmd-table">
+    <thead><tr><th>Decimal</th><th>Flag</th><th>Why it matters</th></tr></thead>
+    <tbody>
+      <tr><td>2</td><td>ACCOUNTDISABLE</td><td>Skip in spray</td></tr>
+      <tr><td>4096</td><td>WORKSTATION_TRUST_ACCOUNT</td><td>Computer account</td></tr>
+      <tr><td>8192</td><td>SERVER_TRUST_ACCOUNT</td><td>DC machine account</td></tr>
+      <tr><td>524288</td><td>TRUSTED_FOR_DELEGATION</td><td>Unconstrained delegation</td></tr>
+      <tr><td>4194304</td><td>DONT_REQ_PREAUTH</td><td>AS-REP roastable</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- =================== LDAP FLOW =================== -->
+<section id="flow">
+  <h2>5. LDAP Bind &amp; Query Flow</h2>
+  <p>Hover the arrows to see what each step does.</p>
+
+  <div class="flow-diagram">
+    <div class="flow-node" data-tip='{"title":"Client","body":"You. Running ldapsearch / windapsearch / bloodhound-python / SharpHound."}'>
+      <strong>Attacker</strong><br>
+      <span style="color: var(--muted); font-size: 12px;">ldapsearch / BH</span>
+    </div>
+
+    <div class="flow-arrows">
+      <div class="flow-arrow req" data-tip='{"title":"1. BIND request","body":"Client sends credentials. Three modes: Anonymous (empty creds), Simple (cleartext or LDAPS), or SASL (Kerberos/NTLM bind)."}'>① BIND  →</div>
+      <div class="flow-arrow res" data-tip='{"title":"2. BIND response","body":"DC returns LDAP_SUCCESS (0) or an error. On Kerberos bind, your TGS for the LDAP service is validated."}'>← ② BIND OK</div>
+      <div class="flow-arrow req" data-tip='{"title":"3. SEARCH request","body":"Client sends a base DN, scope (base/onelevel/subtree), filter, and requested attributes."}'>③ SEARCH  →</div>
+      <div class="flow-arrow res" data-tip='{"title":"4. SEARCH entries","body":"DC streams back matching entries, one per response. Default page size on Windows = 1000 — use paging for larger results."}'>← ④ Entries…</div>
+      <div class="flow-arrow res" data-tip='{"title":"5. SEARCH result done","body":"DC sends final ResultDone PDU with status code. 0 = success."}'>← ⑤ Done</div>
+      <div class="flow-arrow req" data-tip='{"title":"6. UNBIND","body":"Client closes the connection. Optional — TCP RST works too."}'>⑥ UNBIND →</div>
+    </div>
+
+    <div class="flow-node dc" data-tip='{"title":"Domain Controller","body":"Listens on 389 (LDAP), 636 (LDAPS), 3268 (Global Catalog), 3269 (Global Catalog SSL). Authoritative for the domain naming context."}'>
+      <strong>Domain Controller</strong><br>
+      <span style="color: var(--muted); font-size: 12px;">389 / 636 / 3268</span>
+    </div>
+  </div>
+
+  <h3>Tools that speak LDAP for you</h3>
+  <table class="cmd-table">
+    <thead><tr><th>Tool</th><th>Platform</th><th>One-liner</th></tr></thead>
+    <tbody>
+      <tr><td><strong>ldapsearch</strong></td><td>Linux</td><td><code>ldapsearch -x -H ldap://&lt;dc&gt; -D 'user@dom' -w pass -b 'DC=dom,DC=local' '(samAccountName=adunn)'</code></td></tr>
+      <tr><td><strong>windapsearch</strong></td><td>Linux</td><td><code>windapsearch -d dom.local -u user -p pass --da</code></td></tr>
+      <tr><td><strong>bloodhound-python</strong></td><td>Linux</td><td><code>bloodhound-python -u U -p P -ns DC -d DOM -c all</code></td></tr>
+      <tr><td><strong>SharpHound</strong></td><td>Windows</td><td><code>.\SharpHound.exe -c All</code></td></tr>
+      <tr><td><strong>PowerView</strong></td><td>Windows</td><td><code>Get-DomainUser -SPN | select samaccountname</code></td></tr>
+      <tr><td><strong>ldp.exe</strong></td><td>Windows GUI</td><td>Built-in MS LDAP browser</td></tr>
+      <tr><td><strong>nmap NSE</strong></td><td>Anywhere</td><td><code>nmap -p 389 --script ldap-search,ldap-rootdse &lt;dc&gt;</code></td></tr>
+    </tbody>
+  </table>
+
+  <div class="tip"><strong>Pro tip:</strong> A successful <em>anonymous</em> bind plus a <code>rootDSE</code> query reveals the domain naming context, supported controls, and forest functional level — without any credential. Always try it first: <code>ldapsearch -x -H ldap://&lt;dc&gt; -s base namingcontexts</code></div>
+</section>
+
+<!-- =================== BUILDING BLOCKS =================== -->
+<section id="blocks">
+  <h2>6. AD Building Blocks</h2>
+  <p>Click any card to expand. Each block is one piece of the AD puzzle.</p>
+
+  <div class="grid">
+    <div class="card forest" data-toggle>
+      <span class="icon">🌲</span>
+      <h4>Forest</h4>
+      <div class="analogy">≈ The property line / fence</div>
+      <div class="desc"><strong>The whole environment</strong> — and the only real security boundary in AD. Contains one or more domain trees that share schema + global catalog.</div>
+      <div class="extra">
+        <strong>Owns:</strong> Schema partition, Configuration partition, forest-wide FSMO roles (Schema Master, Domain Naming Master), Enterprise Admins, Schema Admins.<br><br>
+        <strong>Why it matters:</strong> Cross-domain trust within a forest is automatic and transitive. SID Filtering is OFF by default intra-forest, so owning a child domain often = owning the forest (ExtraSids attack).
+      </div>
+    </div>
+
+    <div class="card domain" data-toggle>
+      <span class="icon">🏢</span>
+      <h4>Domain</h4>
+      <div class="analogy">≈ A floor with its own keycards</div>
+      <div class="desc"><strong>One administrative unit inside a forest.</strong> Has its own users, groups, password policy, and DCs.</div>
+      <div class="extra">
+        <strong>Owns:</strong> Domain naming context (the user/group/computer DB), domain-wide FSMO roles (PDC Emulator, RID, Infrastructure), its own KRBTGT.<br><br>
+        <strong>Why it matters:</strong> Most attacks target a single domain at a time. Compromising one domain != compromising the forest, but in practice it usually leads there.
+      </div>
+    </div>
+
+    <div class="card ou" data-toggle>
+      <span class="icon">📂</span>
+      <h4>OU — Organizational Unit</h4>
+      <div class="analogy">≈ Office suite with house rules</div>
+      <div class="desc"><strong>A folder inside a domain</strong> for grouping users/computers and applying GPOs. Can be nested.</div>
+      <div class="extra">
+        <strong>Receives:</strong> GPOs (inherited down the tree), delegated administrative rights.<br><br>
+        <strong>Why it matters:</strong> An attacker with rights on an OU (GenericWrite, WriteDACL) can link a malicious GPO and own everything inside. Also: <code>OU=Domain Controllers</code> is the most sensitive container in AD.
+      </div>
+    </div>
+
+    <div class="card gpo" data-toggle>
+      <span class="icon">📜</span>
+      <h4>GPO — Group Policy Object</h4>
+      <div class="analogy">≈ The house rules themselves</div>
+      <div class="desc"><strong>A bundle of settings</strong> (registry keys, scripts, software, security policy) linked to a Site, Domain, or OU and pushed to every computer/user underneath.</div>
+      <div class="extra">
+        <strong>Stored in:</strong> SYSVOL share + LDAP. Computers re-read every 90 ± 30 min.<br><br>
+        <strong>Why it matters:</strong> A GPO can deploy a scheduled task to run as SYSTEM on every host below it. Misconfigured permissions on SYSVOL or AD GPO objects = mass code execution. Old GPP files (<code>Groups.xml</code>) leak <em>cpassword</em> — AES-decryptable cleartext local admin creds.
+      </div>
+    </div>
+
+    <div class="card dc" data-toggle>
+      <span class="icon">🖥</span>
+      <h4>DC — Domain Controller</h4>
+      <div class="analogy">≈ The master keychain cabinet</div>
+      <div class="desc"><strong>The server that runs AD.</strong> Stores <code>ntds.dit</code> (every user's NT hash) and runs Kerberos KDC, LDAP, DNS, and the Global Catalog.</div>
+      <div class="extra">
+        <strong>Listens on:</strong> 88 (Kerberos), 389/636 (LDAP/S), 3268/3269 (GC), 53 (DNS), 445 (SMB), 135 + dynamic (RPC).<br><br>
+        <strong>Why it matters:</strong> Owning the DC = owning the domain. DCSync remotely abuses replication to pull every credential without ever logging into the DC itself. <code>secretsdump.py -just-dc</code> is the finishing move.
+      </div>
+    </div>
+
+    <div class="card krbtgt" data-toggle>
+      <span class="icon">🔑</span>
+      <h4>KRBTGT</h4>
+      <div class="analogy">≈ The owner's invisible-ink pen</div>
+      <div class="desc"><strong>A hidden, disabled account whose NT hash signs every Kerberos ticket</strong> in the domain. Created automatically when the domain is built.</div>
+      <div class="extra">
+        <strong>Stored in:</strong> <code>ntds.dit</code> on the DC.<br><br>
+        <strong>Why it matters:</strong> If you steal the KRBTGT NT hash, you can <strong>forge a Golden Ticket</strong> — a valid TGT for any user (including non-existent ones) for up to 10 years. Defense: rotate the password TWICE (each rotation invalidates one history slot, and tickets verify against current + previous).
+      </div>
+    </div>
+  </div>
+
+  <div class="tip warn"><strong>Rule of thumb:</strong> The <strong>forest</strong> — not the domain — is the real security boundary. Cross-domain trust inside a forest is mostly automatic and transitive.</div>
+</section>
+
+<!-- =================== PROTOCOLS =================== -->
+<section id="protocols">
+  <h2>7. Protocols You'll Touch</h2>
+  <p>Hover any protocol for attack notes. Color-coded by category.</p>
+
+  <div class="proto-grid">
+    <div class="proto dns" data-tip='{"title":"DNS — Domain Name System","meta":"port 53 (UDP/TCP)","body":"AD-integrated DNS stores SRV records. Querying <code>_ldap._tcp.dc._msdcs.&lt;domain&gt;</code> returns every Domain Controller in the domain. <b>Always try DNS first to find the DC.</b>"}'>
+      <div class="proto-head"><span class="proto-name">DNS</span><span class="proto-port">53/udp,tcp</span></div>
+      <div class="proto-desc">Name resolution — finds the DC.</div>
+      <div class="proto-attack">Find DC: <code>dig SRV _ldap._tcp.dc._msdcs.&lt;domain&gt;</code></div>
+    </div>
+
+    <div class="proto kerb" data-tip='{"title":"Kerberos","meta":"port 88 (UDP/TCP)","body":"Default authentication since Win2000. Three-party ticket protocol: client, KDC (the DC), service. <b>Port 88 = the DC. Always.</b>"}'>
+      <div class="proto-head"><span class="proto-name">Kerberos</span><span class="proto-port">88/udp,tcp</span></div>
+      <div class="proto-desc">Ticket-based authentication.</div>
+      <div class="proto-attack">Kerberoasting · AS-REP roast · Golden Ticket</div>
+    </div>
+
+    <div class="proto ldap" data-tip='{"title":"LDAP / LDAPS","meta":"port 389 / 636","body":"Query (and modify) the directory. LDAP is plaintext — LDAPS is TLS. <b>SASL bind with Kerberos is encrypted even on 389.</b>"}'>
+      <div class="proto-head"><span class="proto-name">LDAP / LDAPS</span><span class="proto-port">389 / 636</span></div>
+      <div class="proto-desc">Read/write the directory.</div>
+      <div class="proto-attack">User/group/ACL enum · BloodHound · NTLM relay → LDAP</div>
+    </div>
+
+    <div class="proto gc" data-tip='{"title":"Global Catalog","meta":"port 3268 / 3269","body":"A read-only forest-wide subset of every domain's directory. Lets you search across all domains in the forest from any DC that hosts a GC."}'>
+      <div class="proto-head"><span class="proto-name">Global Catalog</span><span class="proto-port">3268 / 3269</span></div>
+      <div class="proto-desc">Forest-wide LDAP search.</div>
+      <div class="proto-attack">Cross-domain enum without VPN-hopping</div>
+    </div>
+
+    <div class="proto smb" data-tip='{"title":"SMB","meta":"port 445/tcp","body":"File sharing + remote admin. Used for shares, named pipes, IPC, PsExec-style execution. NTLM authentication runs over SMB by default."}'>
+      <div class="proto-head"><span class="proto-name">SMB</span><span class="proto-port">445/tcp</span></div>
+      <div class="proto-desc">File shares + remote admin.</div>
+      <div class="proto-attack">Share spider · PsExec/WMI exec · NTLM relay</div>
+    </div>
+
+    <div class="proto rpc" data-tip='{"title":"RPC — Remote Procedure Call","meta":"port 135 + dynamic high ports","body":"The control plane for nearly everything Microsoft. DCOM, EFSRPC (PetitPotam), DRSUAPI (DCSync), MS-RPRN (PrintNightmare), SAMR (rpcclient enumdomusers) all ride on RPC."}'>
+      <div class="proto-head"><span class="proto-name">RPC</span><span class="proto-port">135 + dynamic</span></div>
+      <div class="proto-desc">Remote management endpoint mapper.</div>
+      <div class="proto-attack">PetitPotam · PrintNightmare · DCSync (DRSUAPI) · rpcclient</div>
+    </div>
+
+    <div class="proto winrm" data-tip='{"title":"WinRM","meta":"port 5985 (HTTP) / 5986 (HTTPS)","body":"Remote PowerShell. Requires membership in Remote Management Users or local admin. Pass-the-hash works."}'>
+      <div class="proto-head"><span class="proto-name">WinRM</span><span class="proto-port">5985 / 5986</span></div>
+      <div class="proto-desc">Remote PowerShell sessions.</div>
+      <div class="proto-attack">Lateral movement: <code>evil-winrm -u U -H NTHASH</code></div>
+    </div>
+
+    <div class="proto nbns" data-tip='{"title":"NetBIOS / LLMNR","meta":"port 137 (NBT-NS) · 5355 (LLMNR)","body":"Legacy multicast/broadcast name resolution that Windows falls back to when DNS fails. Anyone on the LAN can answer. <b>Default-on, default-poisonable.</b>"}'>
+      <div class="proto-head"><span class="proto-name">NetBIOS / LLMNR</span><span class="proto-port">137 · 5355</span></div>
+      <div class="proto-desc">Legacy name fallback.</div>
+      <div class="proto-attack">Responder poisoning → NetNTLMv2 capture → crack (mode 5600)</div>
+    </div>
+  </div>
+
+  <h3>Quick port → "what is it?" cheat</h3>
+  <pre><code>53     → DNS                    Find DCs via SRV records
+88     → Kerberos                =&gt; this host is a DC
+135    → RPC endpoint mapper     "What dynamic port runs service X?"
+137    → NetBIOS NS              Poisonable on LAN
+139    → NetBIOS Session         Legacy SMB
+389    → LDAP (cleartext)        Query directory
+445    → SMB                     Shares + RPC over SMB
+464    → Kerberos kpasswd        Password change
+593    → RPC over HTTP
+636    → LDAPS (TLS)             Encrypted directory
+3268   → Global Catalog          Forest-wide LDAP
+3269   → Global Catalog (TLS)    Encrypted forest-wide LDAP
+5355   → LLMNR                   Poisonable
+5985   → WinRM HTTP              Remote PowerShell
+5986   → WinRM HTTPS             Remote PowerShell (TLS)</code></pre>
+
+  <div class="tip">If you scan a host and see <strong>53, 88, 389, 445, 3268</strong> all open → that's a Domain Controller. Add LDAP enumeration to your next move.</div>
+</section>
+
+</div>
+
+<div id="tooltip" role="tooltip"></div>
+
+<script>
+  const tooltip = document.getElementById('tooltip');
+
+  function showTooltip(e) {
+    const raw = e.currentTarget.getAttribute('data-tip');
+    if (!raw) return;
+    let data;
+    try { data = JSON.parse(raw); } catch (err) { return; }
+
+    let html = '';
+    if (data.title) html += `<div class="tt-title">${data.title}</div>`;
+    if (data.meta)  html += `<div class="tt-meta">${data.meta}</div>`;
+    if (data.body)  html += `<div class="tt-body">${data.body}</div>`;
+    tooltip.innerHTML = html;
+    tooltip.classList.add('visible');
+    moveTooltip(e);
+  }
+
+  function moveTooltip(e) {
+    const padding = 14;
+    const rect = tooltip.getBoundingClientRect();
+    let x = e.clientX + padding;
+    let y = e.clientY + padding;
+    if (x + rect.width > window.innerWidth - 8) x = e.clientX - rect.width - padding;
+    if (y + rect.height > window.innerHeight - 8) y = e.clientY - rect.height - padding;
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = y + 'px';
+  }
+
+  function hideTooltip() {
+    tooltip.classList.remove('visible');
+  }
+
+  document.querySelectorAll('[data-tip]').forEach(el => {
+    el.addEventListener('mouseenter', showTooltip);
+    el.addEventListener('mousemove', moveTooltip);
+    el.addEventListener('mouseleave', hideTooltip);
+    el.addEventListener('focus', showTooltip);
+    el.addEventListener('blur', hideTooltip);
+    el.setAttribute('tabindex', '0');
+  });
+
+  // Click-to-expand on cards
+  document.querySelectorAll('[data-toggle]').forEach(card => {
+    card.addEventListener('click', () => card.classList.toggle('expanded'));
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Active Directory Forest — Interactive Diagram</title>
+<style>
+  :root {
+    --bg: #0A0A0A;
+    --panel: #0e0e0e;
+    --panel-2: #0a0a0a;
+    --border: #1a1a1a;
+    --border-hover: #2a2a2a;
+    --text: rgba(255,255,255,0.9);
+    --muted: rgba(255,255,255,0.4);
+    --dim: rgba(255,255,255,0.55);
+    --accent: #00FF41;
+    --accent-dim: rgba(0,255,65,0.6);
+    --accent-faint: rgba(0,255,65,0.08);
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --info: #38bdf8;
+    --purple: #a78bfa;
+    --forest: rgba(0, 255, 65, 0.04);
+    --forest-border: #00FF41;
+    --domain: rgba(56, 189, 248, 0.05);
+    --domain-border: #38bdf8;
+    --dc: #f59e0b;
+    --ou: rgba(167, 139, 250, 0.06);
+    --ou-border: #a78bfa;
+    --trust-auto: #00FF41;
+    --trust-manual: #a78bfa;
+    --trust-external: #ef4444;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at top, rgba(0,255,65,0.04), transparent 60%),
+      radial-gradient(ellipse at bottom right, rgba(56,189,248,0.03), transparent 50%);
+  }
+  code, .mono { font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace; }
+  header {
+    max-width: 1400px; margin: 0 auto 24px;
+  }
+  h1 {
+    margin: 0 0 8px; font-size: 24px; font-weight: 600;
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(0,255,65,0.25);
+    letter-spacing: -0.01em;
+  }
+  h1::before { content: '> '; color: var(--accent-dim); font-family: 'JetBrains Mono', monospace; }
+  .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 16px; font-family: 'JetBrains Mono', monospace; }
+
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent-dim);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 12px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .swatch { width: 20px; height: 12px; border-radius: 3px; border: 1px solid var(--border); }
+  .swatch-line { width: 30px; height: 0; border-top: 2px solid; }
+  .swatch-line.dashed { border-top-style: dashed; }
+  .swatch-line.dotted { border-top-style: dotted; }
+
+  .container {
+    max-width: 1400px; margin: 0 auto;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    position: relative;
+    box-shadow: 0 0 40px rgba(0,255,65,0.04);
+  }
+  .container::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
+  }
+
+  svg { display: block; width: 100%; height: auto; cursor: default; }
+
+  /* Forest container */
+  .forest-box {
+    fill: var(--forest);
+    stroke: var(--forest-border);
+    stroke-width: 2;
+    stroke-dasharray: 8 4;
+    transition: filter 0.2s;
+  }
+  .forest-box:hover { filter: brightness(1.4); }
+
+  /* Domain container */
+  .domain-box {
+    fill: var(--domain);
+    stroke: var(--domain-border);
+    stroke-width: 1.5;
+    transition: filter 0.2s;
+  }
+  .domain-box:hover { filter: brightness(1.5); }
+
+  /* OU box */
+  .ou-box {
+    fill: var(--ou);
+    stroke: var(--ou-border);
+    stroke-width: 1;
+    stroke-dasharray: 3 2;
+    transition: filter 0.2s;
+  }
+  .ou-box:hover { filter: brightness(1.6); }
+
+  /* DC node */
+  .dc-node {
+    fill: var(--dc);
+    stroke: #fff;
+    stroke-width: 2;
+    transition: r 0.2s, filter 0.2s;
+  }
+  .dc-node:hover { filter: brightness(1.3); }
+
+  /* User/computer icons */
+  .obj-node {
+    fill: var(--accent);
+    stroke: var(--bg);
+    stroke-width: 1.5;
+    transition: filter 0.2s;
+  }
+  .obj-node:hover { filter: brightness(1.4); }
+
+  /* Trust lines */
+  .trust-line { fill: none; stroke-width: 2.5; pointer-events: stroke; cursor: help; }
+  .trust-auto { stroke: var(--trust-auto); }
+  .trust-manual { stroke: var(--trust-manual); stroke-dasharray: 8 4; }
+  .trust-external { stroke: var(--trust-external); stroke-dasharray: 2 3; }
+  .trust-line:hover { stroke-width: 4; }
+
+  /* Text labels */
+  text { fill: var(--text); font-family: 'JetBrains Mono', monospace; pointer-events: none; user-select: none; }
+  .label-forest { font-size: 13px; font-weight: 700; fill: var(--forest-border); letter-spacing: 0.05em; }
+  .label-domain { font-size: 12px; font-weight: 600; fill: var(--domain-border); letter-spacing: 0.03em; }
+  .label-ou { font-size: 11px; font-weight: 500; fill: var(--ou-border); }
+  .label-dc { font-size: 9px; font-weight: 700; fill: #000; letter-spacing: 0.05em; }
+  .label-obj { font-size: 9px; fill: var(--text); }
+  .label-trust { font-size: 10px; font-style: italic; fill: var(--muted); }
+  .label-boundary { font-size: 9px; font-weight: 700; fill: var(--danger); letter-spacing: 1.5px; }
+
+  /* Tooltip */
+  #tooltip {
+    position: fixed;
+    pointer-events: none;
+    background: #0c0c0c;
+    border: 1px solid var(--accent-dim);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    line-height: 1.5;
+    max-width: 340px;
+    color: var(--text);
+    box-shadow: 0 8px 32px rgba(0,255,65,0.12), 0 0 0 1px rgba(0,0,0,0.6);
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 1000;
+    font-family: 'Inter', sans-serif;
+  }
+  #tooltip.visible { opacity: 1; }
+  #tooltip .tt-title { font-weight: 700; color: var(--accent); margin-bottom: 4px; font-size: 13px; letter-spacing: 0.02em; }
+  #tooltip .tt-meta { color: var(--muted); font-size: 10px; margin-bottom: 6px; font-style: italic; text-transform: uppercase; letter-spacing: 0.1em; }
+  #tooltip .tt-attack { color: var(--warn); font-size: 11px; margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border-hover); }
+  #tooltip code { background: #050505; padding: 1px 5px; border-radius: 3px; font-size: 11px; color: var(--accent); border: 1px solid var(--border); }
+
+  /* Make hoverable elements show pointer */
+  [data-tip] { cursor: help; }
+
+  .footer {
+    max-width: 1400px; margin: 16px auto 0;
+    color: var(--muted); font-size: 12px; text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Active Directory — Forest, Trees, Domains & Trusts</h1>
+  <div class="subtitle">Hover any element for details, attack notes, and security boundaries.</div>
+  <div class="legend">
+    <div class="legend-item"><div class="swatch" style="background: var(--forest); border-color: var(--forest-border);"></div>Forest (security boundary)</div>
+    <div class="legend-item"><div class="swatch" style="background: var(--domain); border-color: var(--domain-border);"></div>Domain</div>
+    <div class="legend-item"><div class="swatch" style="background: var(--ou); border-color: var(--ou-border);"></div>Organizational Unit (OU)</div>
+    <div class="legend-item"><div class="swatch" style="background: var(--dc); border: 0;"></div>Domain Controller (DC)</div>
+    <div class="legend-item"><div class="swatch-line" style="border-color: var(--trust-auto);"></div>Parent-Child / Tree-Root (auto, transitive)</div>
+    <div class="legend-item"><div class="swatch-line dashed" style="border-color: var(--trust-manual);"></div>Forest trust (manual, transitive)</div>
+    <div class="legend-item"><div class="swatch-line dotted" style="border-color: var(--trust-external);"></div>External trust (non-transitive)</div>
+  </div>
+</header>
+
+<div class="container">
+<svg viewBox="0 0 1340 820" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow-auto" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#00FF41"/>
+    </marker>
+    <marker id="arrow-manual" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#a78bfa"/>
+    </marker>
+    <marker id="arrow-external" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ef4444"/>
+    </marker>
+  </defs>
+
+  <!-- ============ FOREST 1: INLANEFREIGHT.LOCAL ============ -->
+  <rect class="forest-box" x="20" y="60" width="820" height="740" rx="12"
+        data-tip='{"title":"Forest: INLANEFREIGHT.LOCAL","meta":"The TRUE security boundary","body":"A forest is a collection of one or more domain trees that share a common schema, configuration, and global catalog. <b>This is the actual security boundary in AD</b> — not the domain. All domains inside trust each other automatically through transitive parent-child / tree-root trusts.","attack":"Owning a child domain often = owning the forest, because intra-forest SID Filtering is OFF by default. ExtraSids attack injects Enterprise Admins SID across the forest."}'>
+  </rect>
+  <text class="label-forest" x="40" y="85">FOREST: INLANEFREIGHT.LOCAL</text>
+  <text class="label-boundary" x="40" y="100">SECURITY BOUNDARY</text>
+
+  <!-- ===== TREE 1: inlanefreight.local ===== -->
+  <!-- Root domain -->
+  <rect class="domain-box" x="50" y="120" width="370" height="320" rx="8"
+        data-tip='{"title":"Root Domain: inlanefreight.local","meta":"Forest root + Tree 1 root","body":"The first domain installed in the forest. Hosts the unique <b>Enterprise Admins</b> and <b>Schema Admins</b> groups, plus the forest-wide FSMO roles (Schema Master, Domain Naming Master). Cannot be removed without destroying the forest.","attack":"Compromising any DC here = full forest compromise. DCSync this domain’s KRBTGT to forge Golden Tickets across the entire forest."}'>
+  </rect>
+  <text class="label-domain" x="65" y="142">DOMAIN: inlanefreight.local</text>
+  <text class="label-ou" x="65" y="158" style="fill: var(--muted); font-style: italic;">(forest root + tree-1 root)</text>
+
+  <!-- DC for root -->
+  <g data-tip='{"title":"Domain Controller: DC01","meta":"inlanefreight.local","body":"Hosts <code>ntds.dit</code> — the AD database with every user’s NT hash. Runs Kerberos KDC (port 88), LDAP (389), Global Catalog (3268), and DNS.","attack":"Primary target. <b>DCSync</b> with replication ACEs pulls every credential including KRBTGT. <code>secretsdump.py -just-dc DOM/U@DC</code>"}'>
+    <circle class="dc-node" cx="100" cy="200" r="18"/>
+    <text class="label-dc" x="100" y="204" text-anchor="middle">DC01</text>
+  </g>
+
+  <!-- OUs in root -->
+  <rect class="ou-box" x="180" y="180" width="220" height="55" rx="4"
+        data-tip='{"title":"OU: Domain Controllers","meta":"Default OU","body":"Default container for all DCs. Receives the <b>Default Domain Controllers Policy</b> GPO which sets critical security policy (audit, user rights assignment).","attack":"GPO targeting this OU is tier-0 — modifying it is full domain compromise."}'>
+  </rect>
+  <text class="label-ou" x="190" y="200">OU: Domain Controllers</text>
+  <g data-tip='{"title":"Object: DC01$ (computer)","meta":"Machine account","body":"Computer accounts have a $ suffix. Each has its own NT hash, used for Kerberos machine auth.","attack":"Machine account hash = TGT requests as that machine. PetitPotam coerces these."}'>
+    <circle class="obj-node" cx="210" cy="220" r="5"/>
+    <text class="label-obj" x="220" y="223">DC01$</text>
+  </g>
+
+  <rect class="ou-box" x="180" y="250" width="220" height="55" rx="4"
+        data-tip='{"title":"OU: IT Admins","meta":"Custom OU","body":"Holds privileged user accounts. GPOs here often restrict logon hosts (tier-0 isolation).","attack":"High-value targets. BloodHound query: <i>Shortest Path to Domain Admins</i> usually ends in this OU."}'>
+  </rect>
+  <text class="label-ou" x="190" y="270">OU: IT Admins</text>
+  <g data-tip='{"title":"User: adunn (Domain Admin)","meta":"member of Domain Admins","body":"A privileged user. Has the keys to the kingdom — local admin on every domain-joined host by default.","attack":"Kerberoast → ACL chain → DCSync. The lab walkthrough chain ends here."}'>
+    <circle class="obj-node" cx="210" cy="290" r="5" style="fill: #ef4444;"/>
+    <text class="label-obj" x="220" y="293">adunn (DA)</text>
+  </g>
+  <g data-tip='{"title":"User: tpetty","meta":"Has DCSync rights","body":"A regular user with the two replication ACEs (<code>DS-Replication-Get-Changes</code> + <code>-All</code>). Often invisible in normal group lists.","attack":"<code>secretsdump.py -just-dc DOM/tpetty@DC</code> → KRBTGT."}'>
+    <circle class="obj-node" cx="310" cy="290" r="5" style="fill: #f59e0b;"/>
+    <text class="label-obj" x="320" y="293">tpetty</text>
+  </g>
+
+  <rect class="ou-box" x="180" y="320" width="220" height="55" rx="4"
+        data-tip='{"title":"OU: Servers","meta":"Custom OU","body":"Member servers (file, web, app). Receives GPOs for service config, audit settings.","attack":"Service accounts running on these often hold SPNs — Kerberoastable. Web shells on web servers = lateral entry."}'>
+  </rect>
+  <text class="label-ou" x="190" y="340">OU: Servers</text>
+  <g data-tip='{"title":"Computer: WEB01","meta":"IIS web server","body":"Public-facing web server. Common foothold via web app vulns.","attack":"Web shell → SeImpersonate → SYSTEM."}'>
+    <circle class="obj-node" cx="210" cy="360" r="5"/>
+    <text class="label-obj" x="220" y="363">WEB01$</text>
+  </g>
+  <g data-tip='{"title":"Computer: SQL01","meta":"MSSQL server","body":"SQL service typically runs as a service account with SeImpersonatePrivilege.","attack":"<code>xp_cmdshell</code> → JuicyPotato/PrintSpoofer → SYSTEM."}'>
+    <circle class="obj-node" cx="310" cy="360" r="5"/>
+    <text class="label-obj" x="320" y="363">SQL01$</text>
+  </g>
+
+  <rect class="ou-box" x="180" y="385" width="220" height="40" rx="4"
+        data-tip='{"title":"OU: Workstations","meta":"User endpoints","body":"All employee desktops/laptops. Largest attack surface — phishing entry point.","attack":"LLMNR poisoning works best on these subnets. Local admin reuse = lateral spread."}'>
+  </rect>
+  <text class="label-ou" x="190" y="408">OU: Workstations</text>
+
+  <!-- ===== Child domain: logistics.inlanefreight.local ===== -->
+  <rect class="domain-box" x="50" y="470" width="370" height="160" rx="8"
+        data-tip='{"title":"Child Domain: logistics.inlanefreight.local","meta":"Tree 1 child","body":"A child domain shares the namespace with its parent (suffix matches). Auto-created two-way transitive parent-child trust.","attack":"<b>Owning this child = owning the forest.</b> DCSync child KRBTGT, forge Golden Ticket with ExtraSid <code>&lt;parent-SID&gt;-519</code> (Enterprise Admins). SID Filtering is OFF intra-forest."}'>
+  </rect>
+  <text class="label-domain" x="65" y="492">DOMAIN: logistics.inlanefreight.local</text>
+  <text class="label-ou" x="65" y="508" style="fill: var(--muted); font-style: italic;">(child of root)</text>
+
+  <g data-tip='{"title":"Domain Controller: DC-LOG01","meta":"logistics.inlanefreight.local","body":"DC for the child domain. Has its own KRBTGT, distinct from the parent.","attack":"Compromise → DCSync child KRBTGT → ticketer.py with ExtraSid 519 → Enterprise Admin in the parent."}'>
+    <circle class="dc-node" cx="100" cy="555" r="18"/>
+    <text class="label-dc" x="100" y="559" text-anchor="middle">DC-LOG</text>
+  </g>
+
+  <rect class="ou-box" x="180" y="535" width="220" height="40" rx="4"
+        data-tip='{"title":"OU: Logistics Users","meta":"Child domain users","body":"Users specific to the logistics business unit.","attack":"Same techniques apply — spray, Kerberoast, ACL hunt. Lower attention from blue team than parent."}'>
+  </rect>
+  <text class="label-ou" x="190" y="558">OU: Logistics Users</text>
+
+  <rect class="ou-box" x="180" y="585" width="220" height="40" rx="4"
+        data-tip='{"title":"OU: Logistics Servers","meta":"Child servers","body":"Member servers in the child domain. Often less hardened.","attack":"File shares here often contain creds in plaintext config files."}'>
+  </rect>
+  <text class="label-ou" x="190" y="608">OU: Logistics Servers</text>
+
+  <!-- Parent-child trust (auto, transitive) -->
+  <line class="trust-line trust-auto" x1="235" y1="440" x2="235" y2="470"
+        marker-end="url(#arrow-auto)" marker-start="url(#arrow-auto)"
+        data-tip='{"title":"Trust: Parent ↔ Child","meta":"AUTO • TRANSITIVE • TWO-WAY","body":"Created automatically when a child domain joins the tree. Both domains trust each other for authentication. Transitive: trust extends through the chain.","attack":"<b>SID Filtering is OFF by default intra-forest.</b> Forge a Golden Ticket in the child, inject ExtraSid <code>&lt;parent-RID-519&gt;</code> = Enterprise Admin. Tool: <code>raiseChild.py</code>."}'>
+  </line>
+  <text class="label-trust" x="245" y="460">parent-child</text>
+
+  <!-- ===== TREE 2: ilfreight.local (separate namespace, same forest) ===== -->
+  <rect class="domain-box" x="450" y="120" width="370" height="270" rx="8"
+        data-tip='{"title":"Tree 2 Root: ilfreight.local","meta":"Separate namespace, same forest","body":"A second tree inside the forest with its own DNS namespace (does not share suffix with inlanefreight.local). Auto-created two-way transitive <b>tree-root trust</b> with the forest root.","attack":"Tree-root trusts behave like parent-child — SID Filtering is off. Same forest = same security boundary."}'>
+  </rect>
+  <text class="label-domain" x="465" y="142">DOMAIN: ilfreight.local</text>
+  <text class="label-ou" x="465" y="158" style="fill: var(--muted); font-style: italic;">(tree-2 root)</text>
+
+  <g data-tip='{"title":"Domain Controller: DC-ILF01","meta":"ilfreight.local","body":"DC for the second tree. Distinct namespace, same forest schema.","attack":"Cross-tree attacks within the same forest = trivial. Use Global Catalog (port 3268) for forest-wide LDAP search."}'>
+    <circle class="dc-node" cx="500" cy="220" r="18"/>
+    <text class="label-dc" x="500" y="224" text-anchor="middle">DC-ILF</text>
+  </g>
+
+  <rect class="ou-box" x="580" y="200" width="220" height="55" rx="4"
+        data-tip='{"title":"OU: HR","meta":"Custom OU","body":"HR department users. GPOs may include software restriction policies.","attack":"HR shares often contain employee data — useful for OSINT and password guessing."}'>
+  </rect>
+  <text class="label-ou" x="590" y="220">OU: HR</text>
+
+  <rect class="ou-box" x="580" y="270" width="220" height="55" rx="4"
+        data-tip='{"title":"OU: Finance","meta":"Custom OU","body":"Finance users — high-value target for ransomware groups.","attack":"Privileged finance accounts may have access to ERP / SAP systems."}'>
+  </rect>
+  <text class="label-ou" x="590" y="290">OU: Finance</text>
+
+  <rect class="ou-box" x="580" y="340" width="220" height="40" rx="4"
+        data-tip='{"title":"OU: Workstations","meta":"Endpoints","body":"User endpoints in tree 2.","attack":"Same lateral techniques as tree 1."}'>
+  </rect>
+  <text class="label-ou" x="590" y="363">OU: Workstations</text>
+
+  <!-- Tree-root trust (auto, transitive) -->
+  <path class="trust-line trust-auto" d="M 420 220 Q 435 200 450 220"
+        marker-end="url(#arrow-auto)" marker-start="url(#arrow-auto)"
+        data-tip='{"title":"Trust: Tree-Root","meta":"AUTO • TRANSITIVE • TWO-WAY","body":"Auto-created between two tree roots in the same forest. Functionally identical to parent-child — both auto + transitive.","attack":"Same as parent-child: SID Filtering off, ExtraSids attack works across trees within forest."}'>
+  </path>
+  <text class="label-trust" x="375" y="195">tree-root</text>
+
+  <!-- ===== Forest 1 boundary annotation ===== -->
+  <text class="label-boundary" x="40" y="785">FOREST 1 = single security boundary (1 root + 1 tree + 1 child = 3 domains)</text>
+
+  <!-- ============ FOREST 2: FREIGHTLOGISTICS.LOCAL ============ -->
+  <rect class="forest-box" x="900" y="120" width="420" height="540" rx="12"
+        data-tip='{"title":"Foreign Forest: FREIGHTLOGISTICS.LOCAL","meta":"Separate organisation","body":"A completely separate forest — different schema, different KRBTGT, different Enterprise Admins. Connected via a manually-configured <b>forest trust</b>.","attack":"<b>SID Filtering is ON by default cross-forest.</b> ExtraSids attack fails. Real avenues: cross-forest Kerberoast, password reuse, Foreign Group Membership, SID History abuse."}'>
+  </rect>
+  <text class="label-forest" x="920" y="145" style="fill: var(--warn);">FOREST: FREIGHTLOGISTICS.LOCAL</text>
+  <text class="label-boundary" x="920" y="160">SECURITY BOUNDARY</text>
+
+  <rect class="domain-box" x="930" y="180" width="360" height="450" rx="8"
+        data-tip='{"title":"Domain: freightlogistics.local","meta":"Foreign forest root","body":"The root domain of the partner forest. Has its own Enterprise Admins, Schema Admins, KRBTGT.","attack":"Cross-forest attacks: enumerate Foreign Domain Group Membership in BloodHound — users from this forest may belong to groups in your forest."}'>
+  </rect>
+  <text class="label-domain" x="945" y="202">DOMAIN: freightlogistics.local</text>
+  <text class="label-ou" x="945" y="218" style="fill: var(--muted); font-style: italic;">(foreign forest root)</text>
+
+  <g data-tip='{"title":"Domain Controller: DC-FRGT","meta":"freightlogistics.local","body":"DC of the foreign forest. Separate Kerberos realm.","attack":"Enumerable via the forest trust. <code>Get-DomainTrust</code> from PowerView shows it."}'>
+    <circle class="dc-node" cx="980" cy="280" r="18"/>
+    <text class="label-dc" x="980" y="284" text-anchor="middle">DC-FRGT</text>
+  </g>
+
+  <rect class="ou-box" x="1060" y="260" width="210" height="55" rx="4"
+        data-tip='{"title":"OU: Partner IT","meta":"Foreign IT staff","body":"IT staff at the partner organisation.","attack":"Look for Foreign Group Membership: <i>Are any of these users members of groups in OUR forest?</i>"}'>
+  </rect>
+  <text class="label-ou" x="1070" y="280">OU: Partner IT</text>
+
+  <rect class="ou-box" x="1060" y="330" width="210" height="55" rx="4"
+        data-tip='{"title":"OU: Vendors","meta":"External users","body":"Vendor accounts granted limited access.","attack":"Vendor accounts often have weak passwords — try cross-forest Kerberoasting first."}'>
+  </rect>
+  <text class="label-ou" x="1070" y="350">OU: Vendors</text>
+
+  <rect class="ou-box" x="1060" y="400" width="210" height="40" rx="4"
+        data-tip='{"title":"OU: Servers","meta":"Foreign servers","body":"Member servers of foreign forest.","attack":"Reachable only if forest trust is two-way + accessible network."}'>
+  </rect>
+  <text class="label-ou" x="1070" y="423">OU: Servers</text>
+
+  <!-- Sub-domain in foreign forest -->
+  <rect class="domain-box" x="950" y="470" width="320" height="140" rx="8"
+        data-tip='{"title":"Child: subsidiary.freightlogistics.local","meta":"Foreign child domain","body":"Child of the foreign forest root. Inherits the forest trust — so OUR users can also auth here (transitive).","attack":"Forest trusts are transitive — once you cross the trust, all child domains in the foreign forest are reachable."}'>
+  </rect>
+  <text class="label-domain" x="965" y="492" style="font-size: 11px;">DOMAIN: subsidiary.freightlogistics.local</text>
+
+  <g data-tip='{"title":"Domain Controller: DC-SUB","meta":"subsidiary.freightlogistics.local","body":"Child DC of the foreign forest.","attack":"Same techniques apply — but always check ms-DS-MachineAccountQuota etc. in the new domain context."}'>
+    <circle class="dc-node" cx="990" cy="555" r="18"/>
+    <text class="label-dc" x="990" y="559" text-anchor="middle">DC-SUB</text>
+  </g>
+
+  <rect class="ou-box" x="1060" y="535" width="210" height="55" rx="4"
+        data-tip='{"title":"OU: Subsidiary Users","meta":"Foreign child users","body":"Users in the foreign child domain.","attack":"Same enumeration tooling — bloodhound-python with <code>--collectionmethod LoggedOn,Session,Trusts</code>."}'>
+  </rect>
+  <text class="label-ou" x="1070" y="555">OU: Subsidiary Users</text>
+
+  <text class="label-boundary" x="920" y="650" style="fill: var(--warn);">FOREST 2 = separate security boundary</text>
+
+  <!-- ===== FOREST TRUST (manual, transitive, dashed line) ===== -->
+  <path class="trust-line trust-manual" d="M 820 250 Q 870 250 900 280"
+        marker-end="url(#arrow-manual)" marker-start="url(#arrow-manual)"
+        data-tip='{"title":"Trust: FOREST TRUST","meta":"MANUAL • TRANSITIVE • can be one-way or two-way","body":"Explicitly configured between forest roots. Allows users from one forest to access resources in the other. <b>SID Filtering is ON by default</b> — strips ExtraSids claims.","attack":"<b>Cross-forest attack vectors:</b><br>1. Cross-forest Kerberoast (<code>GetUserSPNs.py -target-domain</code>)<br>2. Admin password reuse between forests<br>3. Foreign Group Membership (a Domain Local group in forest B contains a user from forest A)<br>4. SID History abuse if filtering is misconfigured"}'>
+  </path>
+  <text class="label-trust" x="830" y="240" style="fill: var(--trust-manual); font-weight: 600;">forest trust</text>
+  <text class="label-trust" x="830" y="255" style="fill: var(--muted); font-size: 10px;">(SID Filtering ON)</text>
+
+  <!-- ===== EXTERNAL TRUST example (dotted line, non-transitive) ===== -->
+  <path class="trust-line trust-external" d="M 600 410 Q 700 530 950 600"
+        marker-end="url(#arrow-external)"
+        data-tip='{"title":"Trust: EXTERNAL TRUST","meta":"MANUAL • NON-TRANSITIVE • one-way or two-way","body":"Trust between a single domain in one forest and a single domain in another. Does NOT cascade through the forest — only the two domains explicitly involved.","attack":"Often used for legacy app integration. <b>SID Filtering ON by default.</b> Look for accounts with cross-domain access — they are the bridge."}'>
+  </path>
+  <text class="label-trust" x="700" y="500" style="fill: var(--trust-external); font-weight: 600;">external trust</text>
+  <text class="label-trust" x="700" y="515" style="fill: var(--muted); font-size: 10px;">(non-transitive)</text>
+
+  <!-- Internal forest trust line: tree-root to forest-root showing intra-forest -->
+  <text class="label-boundary" x="40" y="40" style="fill: var(--accent); font-size: 11px;">→ Hover any element for explanation, attacks, and security implications</text>
+</svg>
+</div>
+
+<div id="tooltip" role="tooltip"></div>
+
+<div class="footer">
+  Hover legend: <span style="color: var(--trust-auto);">green solid</span> = automatic transitive trust ·
+  <span style="color: var(--trust-manual);">purple dashed</span> = forest trust ·
+  <span style="color: var(--trust-external);">red dotted</span> = external (non-transitive).
+  Companion to <code>AD-SIMPLE-GUIDE.md</code> and <code>AD-PRESENTATION-SLIDES.md</code>.
+</div>
+
+<script>
+  const tooltip = document.getElementById('tooltip');
+  const elements = document.querySelectorAll('[data-tip]');
+
+  function showTooltip(e) {
+    let raw = e.currentTarget.getAttribute('data-tip');
+    let data;
+    try { data = JSON.parse(raw); } catch (err) { return; }
+
+    let html = '';
+    if (data.title) html += `<div class="tt-title">${data.title}</div>`;
+    if (data.meta)  html += `<div class="tt-meta">${data.meta}</div>`;
+    if (data.body)  html += `<div class="tt-body">${data.body}</div>`;
+    if (data.attack) html += `<div class="tt-attack"><b>⚔ Attack:</b> ${data.attack}</div>`;
+    tooltip.innerHTML = html;
+    tooltip.classList.add('visible');
+    moveTooltip(e);
+  }
+
+  function moveTooltip(e) {
+    const padding = 14;
+    const rect = tooltip.getBoundingClientRect();
+    let x = e.clientX + padding;
+    let y = e.clientY + padding;
+    if (x + rect.width > window.innerWidth - 8) x = e.clientX - rect.width - padding;
+    if (y + rect.height > window.innerHeight - 8) y = e.clientY - rect.height - padding;
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = y + 'px';
+  }
+
+  function hideTooltip() {
+    tooltip.classList.remove('visible');
+  }
+
+  elements.forEach(el => {
+    el.addEventListener('mouseenter', showTooltip);
+    el.addEventListener('mousemove', moveTooltip);
+    el.addEventListener('mouseleave', hideTooltip);
+    el.addEventListener('focus', showTooltip);
+    el.addEventListener('blur', hideTooltip);
+    el.setAttribute('tabindex', '0');
+  });
+</script>
+
+</body>
+</html>
