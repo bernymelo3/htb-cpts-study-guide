@@ -1,0 +1,249 @@
+{
+  "main": {
+    "id": "df76bb46fb2ff5a4",
+    "type": "split",
+    "children": [
+      {
+        "id": "c3013e3a7f20d702",
+        "type": "tabs",
+        "dimension": 17.761989342806398,
+        "children": [
+          {
+            "id": "4f21cb791a6fa821",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "Nova aba"
+            }
+          }
+        ]
+      },
+      {
+        "id": "ddf34c78168e261b",
+        "type": "tabs",
+        "dimension": 82.23801065719361,
+        "children": [
+          {
+            "id": "de7eeb8233fbe993",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Visualização de diagrama de grafo"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "5ee8dbc19d9e7c5a",
+    "type": "split",
+    "children": [
+      {
+        "id": "707bbfca956ff463",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "00062134f338bfa8",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Explorador de ficheiros"
+            }
+          },
+          {
+            "id": "6c8fb6634d32e159",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Procurar"
+            }
+          },
+          {
+            "id": "1995c2a0112f3018",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Marcadores"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "cad8fde7d5e0086e",
+    "type": "split",
+    "children": [
+      {
+        "id": "33067a9a433d8207",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "ca4ed37de24c79ec",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "AD-PRESENTATION-SLIDES.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks para AD-PRESENTATION-SLIDES"
+            }
+          },
+          {
+            "id": "e5c6692f03561859",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "AD-PRESENTATION-SLIDES.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Links externos de AD-PRESENTATION-SLIDES"
+            }
+          },
+          {
+            "id": "57c50fb9519df92e",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Etiquetas"
+            }
+          },
+          {
+            "id": "81b83459e5096aeb",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Todas as propriedades"
+            }
+          },
+          {
+            "id": "1d352a0a5a086f1d",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "AD-PRESENTATION-SLIDES.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Índice de AD-PRESENTATION-SLIDES"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Abrir Quick Switcher": false,
+      "graph:Abrir Visualização de diagrama de grafo": false,
+      "canvas:Criar novo Canvas": false,
+      "daily-notes:Abrir nota de hoje": false,
+      "templates:Inserir templates": false,
+      "command-palette:Abrir paleta de comando": false,
+      "bases:Criar nova base": false
+    }
+  },
+  "active": "de7eeb8233fbe993",
+  "lastOpenFiles": [
+    "web-attacks/13-intro-to-xxe.md",
+    "web-attacks/08-mass-idor-enumeration.md",
+    "web-attacks/12-idor-prevention.md",
+    "web-attacks/09-bypassing-encoded-references.md",
+    "web-attacks/10-idor-insecure-apis.md",
+    "web-attacks/11-chaining-idor-vulnerabilities.md",
+    "report/HTB-CPTS-Report.pdf",
+    "report/Não confirmado 185962.crdownload",
+    "EXAM-WARNINGS.md",
+    "report",
+    "web-attacks/8-mass-idor-enumeration.md",
+    "web-attacks/07-idor-2.md",
+    "web-attacks/06-idor.md",
+    "web-attacks/05-verb-tampering-prevention.md",
+    "web-attacks/04-bypassing-security-filters.md",
+    "web-attacks/03-bypassing-basic-authentication.md",
+    "web-attacks/02-http-verb-tampering.md",
+    "web-attacks/02-http-ver.md",
+    "web-attacks/01-attacks.md",
+    "web-attacks",
+    "command-injetions/12-command_injections_skills_assessment.md",
+    "command-injetions/11-defense.md",
+    "command-injetions/09-command_injections_advanced_obfuscation.md",
+    "command-injetions/10-evasion-tools.md",
+    "command-injetions/06-command_injections_bypassing_space_filters.md",
+    "command-injetions/07-command_injections_bypassing_other_blacklisted_chars.md",
+    "command-injetions/08-command_injections_bypassing_blacklisted_commands.md",
+    "login-brute-forcing/00-METHODOLOGY.md",
+    "command-injetions/04-other-injection-operators.md",
+    "command-injetions/Não confirmado 374168.crdownload",
+    "command-injetions/03-injecting-commands.md",
+    "sqlmap-fundamentals/sqlmap-decision-flowchart.svg",
+    "file-inclusion/lfi-automated-scanning-mindmap.svg",
+    "_templates",
+    "command-injetions",
+    "pasta sem nome",
+    "file-uploads",
+    "ad-enum-attacks/ad-forest-mindmap.svg",
+    "Sem título.canvas",
+    "Sem título 1.canvas",
+    "Sem título.base",
+    "ad-enum-attacks/acl-abuse-flowchart.png",
+    "sql-injection-fundamentals/sqli-diagram.png",
+    "sql-injection-fundamentals/image.png",
+    "file-inclusion/lfi_automated_scanning_mindmap.svg",
+    "ad-enum-attacks/ad_forest_mindmap.svg"
+  ]
+}

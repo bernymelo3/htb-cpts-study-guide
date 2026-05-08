@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XSS Type Decision Map — CPTS Notes</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0c0e13;--bg2:#13161d;--bg3:#1a1e28;
+  --txt:#d4d4d8;--txt2:#a1a1aa;--txt3:#71717a;
+  --red:#ef4444;--red-dim:#7f1d1d;--red-bg:#1c1012;
+  --teal:#2dd4bf;--teal-dim:#134e4a;--teal-bg:#0d1a1a;
+  --coral:#f97316;--coral-dim:#7c2d12;--coral-bg:#1a130d;
+  --purple:#a78bfa;--purple-dim:#4c1d95;
+  --accent:#818cf8;--border:#27272a;
+}
+body{background:var(--bg);color:var(--txt);font-family:'Source Sans 3',sans-serif;line-height:1.6;padding:2rem}
+.container{max-width:1200px;margin:0 auto}
+h1{font-size:1.6rem;font-weight:700;color:#fff;margin-bottom:.25rem;letter-spacing:-.02em}
+.subtitle{color:var(--txt3);font-size:.85rem;margin-bottom:2rem;font-family:'JetBrains Mono',monospace}
+.layout{display:grid;grid-template-columns:1fr 340px;gap:2rem;align-items:start}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+
+.map-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.5rem;overflow:hidden}
+
+.notes-panel{display:flex;flex-direction:column;gap:1rem}
+.note-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1.25rem;transition:border-color .2s}
+.note-card:hover{border-color:#3f3f46}
+.note-card.stored{border-left:3px solid var(--red)}
+.note-card.reflected{border-left:3px solid var(--teal)}
+.note-card.dom{border-left:3px solid var(--coral)}
+.note-card.procedure{border-left:3px solid var(--purple)}
+.note-title{font-weight:700;font-size:.95rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem}
+.note-card.stored .note-title{color:var(--red)}
+.note-card.reflected .note-title{color:var(--teal)}
+.note-card.dom .note-title{color:var(--coral)}
+.note-card.procedure .note-title{color:var(--purple)}
+.note-card p,.note-card li{font-size:.82rem;color:var(--txt2);line-height:1.55}
+.note-card ul{padding-left:1.1rem;margin-top:.35rem}
+.note-card li{margin-bottom:.25rem}
+.note-card li::marker{color:var(--txt3)}
+code{font-family:'JetBrains Mono',monospace;font-size:.75rem;background:var(--bg3);padding:.15em .4em;border-radius:4px;color:#e2e8f0}
+.badge{display:inline-block;font-size:.65rem;font-family:'JetBrains Mono',monospace;padding:.15em .5em;border-radius:4px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.badge-red{background:var(--red-bg);color:var(--red)}
+.badge-teal{background:var(--teal-bg);color:var(--teal)}
+.badge-coral{background:var(--coral-bg);color:var(--coral)}
+
+.decision-row{display:flex;align-items:center;gap:.5rem;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border)}
+.step-num{width:22px;height:22px;border-radius:50%;background:var(--bg3);color:var(--txt2);font-size:.7rem;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.decision-row p{font-size:.8rem;color:var(--txt2)}
+
+/* SVG styling */
+svg text{font-family:'Source Sans 3',sans-serif}
+.th{font-size:14px;font-weight:600;fill:var(--txt)}
+.ts{font-size:12px;font-weight:400;fill:var(--txt2)}
+.arr{stroke:var(--txt3);stroke-width:1.5}
+.leader{stroke:var(--txt3);stroke-width:.5;stroke-dasharray:3 3}
+
+.box-stored rect{fill:var(--red-dim);stroke:var(--red);opacity:.7}
+.box-stored .th{fill:#fca5a5}
+.box-stored .ts{fill:#fecaca}
+.box-reflected rect{fill:var(--teal-dim);stroke:var(--teal);opacity:.7}
+.box-reflected .th{fill:#99f6e4}
+.box-reflected .ts{fill:#ccfbf1}
+.box-dom rect{fill:var(--coral-dim);stroke:var(--coral);opacity:.7}
+.box-dom .th{fill:#fed7aa}
+.box-dom .ts{fill:#ffedd5}
+.box-decision rect{fill:#1e1b4b;stroke:var(--accent);opacity:.7}
+.box-decision .th{fill:#c7d2fe}
+.box-decision .ts{fill:#e0e7ff}
+.box-neutral rect{fill:var(--bg3);stroke:#52525b}
+.box-neutral .th{fill:#e4e4e7}
+.lbl{font-size:11px;fill:var(--txt3);font-weight:500;font-family:'JetBrains Mono',monospace}
+.payload-box rect{fill:var(--bg3);stroke:#3f3f46}
+.payload-box .th{fill:#d4d4d8}
+.payload-box .ts{fill:#a1a1aa}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>XSS type decision map</h1>
+  <p class="subtitle">CPTS // Cross-Site Scripting module</p>
+
+  <div class="layout">
+    <!-- LEFT: SVG Map -->
+    <div class="map-card">
+      <svg width="100%" viewBox="0 0 680 580" xmlns="http://www.w3.org/2000/svg">
+
+        <!-- Start -->
+        <g class="box-neutral">
+          <rect x="230" y="20" width="220" height="42" rx="8" stroke-width="0.5"/>
+          <text class="th" x="340" y="41" text-anchor="middle" dominant-baseline="central">Inject XSS payload</text>
+        </g>
+        <line x1="340" y1="62" x2="340" y2="98" class="arr" marker-end="url(#a)"/>
+
+        <!-- Decision 1 -->
+        <g class="box-decision">
+          <rect x="170" y="98" width="340" height="54" rx="8" stroke-width="0.5"/>
+          <text class="th" x="340" y="117" text-anchor="middle" dominant-baseline="central">Check DevTools → Network tab</text>
+          <text class="ts" x="340" y="137" text-anchor="middle" dominant-baseline="central">Was an HTTP request sent?</text>
+        </g>
+
+        <!-- NO → DOM XSS (right) -->
+        <line x1="510" y1="125" x2="565" y2="125" class="arr" marker-end="url(#a)"/>
+        <text class="lbl" x="530" y="118">NO</text>
+        <line x1="565" y1="125" x2="565" y2="175" class="arr" marker-end="url(#a)"/>
+        <g class="box-dom">
+          <rect x="465" y="175" width="200" height="130" rx="8" stroke-width="0.5"/>
+          <text class="th" x="565" y="200" text-anchor="middle" dominant-baseline="central">DOM XSS</text>
+          <text class="ts" x="565" y="222" text-anchor="middle" dominant-baseline="central">Client-side only</text>
+          <text class="ts" x="565" y="240" text-anchor="middle" dominant-baseline="central">URL uses # fragment</text>
+          <text class="ts" x="565" y="258" text-anchor="middle" dominant-baseline="central">Server is completely blind</text>
+          <text class="ts" x="565" y="276" text-anchor="middle" dominant-baseline="central">No WAF / log detection</text>
+          <text class="ts" x="565" y="294" text-anchor="middle" dominant-baseline="central">Use &lt;img onerror=...&gt;</text>
+        </g>
+
+        <!-- YES → Decision 2 (down) -->
+        <line x1="340" y1="152" x2="340" y2="210" class="arr" marker-end="url(#a)"/>
+        <text class="lbl" x="348" y="186">YES</text>
+
+        <!-- Decision 2 -->
+        <g class="box-decision">
+          <rect x="170" y="210" width="340" height="54" rx="8" stroke-width="0.5"/>
+          <text class="th" x="340" y="229" text-anchor="middle" dominant-baseline="central">Refresh the page</text>
+          <text class="ts" x="340" y="249" text-anchor="middle" dominant-baseline="central">Does the payload fire again?</text>
+        </g>
+
+        <!-- YES → Stored (left) -->
+        <line x1="170" y1="237" x2="115" y2="237" class="arr" marker-end="url(#a)"/>
+        <text class="lbl" x="132" y="229">YES</text>
+        <line x1="115" y1="237" x2="115" y2="290" class="arr" marker-end="url(#a)"/>
+        <g class="box-stored">
+          <rect x="15" y="290" width="200" height="150" rx="8" stroke-width="0.5"/>
+          <text class="th" x="115" y="315" text-anchor="middle" dominant-baseline="central">Stored XSS</text>
+          <text class="ts" x="115" y="337" text-anchor="middle" dominant-baseline="central">Saved in back-end DB</text>
+          <text class="ts" x="115" y="355" text-anchor="middle" dominant-baseline="central">Hits every visitor</text>
+          <text class="ts" x="115" y="373" text-anchor="middle" dominant-baseline="central">Most critical impact</text>
+          <text class="ts" x="115" y="391" text-anchor="middle" dominant-baseline="central">&lt;script&gt; tags work</text>
+          <text class="ts" x="115" y="409" text-anchor="middle" dominant-baseline="central">Persists until DB cleanup</text>
+          <text class="ts" x="115" y="427" text-anchor="middle" dominant-baseline="central">No social engineering needed</text>
+        </g>
+
+        <!-- NO → Reflected (right) -->
+        <line x1="510" y1="237" x2="565" y2="237" class="arr" marker-end="url(#a)"/>
+        <text class="lbl" x="530" y="229">NO</text>
+        <line x1="565" y1="237" x2="565" y2="340" class="arr" marker-end="url(#a)"/>
+        <g class="box-reflected">
+          <rect x="465" y="340" width="200" height="150" rx="8" stroke-width="0.5"/>
+          <text class="th" x="565" y="365" text-anchor="middle" dominant-baseline="central">Reflected XSS</text>
+          <text class="ts" x="565" y="387" text-anchor="middle" dominant-baseline="central">Server echoes input back</text>
+          <text class="ts" x="565" y="405" text-anchor="middle" dominant-baseline="central">Payload in GET or POST</text>
+          <text class="ts" x="565" y="423" text-anchor="middle" dominant-baseline="central">One victim per click</text>
+          <text class="ts" x="565" y="441" text-anchor="middle" dominant-baseline="central">&lt;script&gt; tags work</text>
+          <text class="ts" x="565" y="459" text-anchor="middle" dominant-baseline="central">Visible in server logs</text>
+          <text class="ts" x="565" y="477" text-anchor="middle" dominant-baseline="central">Needs social engineering</text>
+        </g>
+
+        <!-- Payload reference -->
+        <g class="payload-box">
+          <rect x="60" y="490" width="400" height="72" rx="10" stroke-width="0.5"/>
+          <text class="th" x="260" y="515" text-anchor="middle" dominant-baseline="central">Payload quick reference</text>
+          <text class="ts" x="260" y="535" text-anchor="middle" dominant-baseline="central">&lt;script&gt;alert(document.cookie)&lt;/script&gt; → Stored / Reflected</text>
+          <text class="ts" x="260" y="553" text-anchor="middle" dominant-baseline="central">&lt;img src="" onerror=alert(document.cookie)&gt; → DOM (innerHTML)</text>
+        </g>
+
+        <defs>
+          <marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+
+    <!-- RIGHT: Side Notes -->
+    <div class="notes-panel">
+
+      <div class="note-card procedure">
+        <div class="note-title">2-step identification procedure</div>
+        <div class="decision-row" style="border:none;padding:0;margin:0">
+          <div class="step-num">1</div>
+          <p>Open DevTools <code>CTRL+Shift+I</code> → Network tab. Inject payload. If <strong>no HTTP request</strong> fires and URL has <code>#</code> → <span style="color:var(--coral)">DOM XSS</span></p>
+        </div>
+        <div class="decision-row">
+          <div class="step-num">2</div>
+          <p>If request was made, <strong>refresh</strong> the page. Fires again → <span style="color:var(--red)">Stored</span>. Gone → <span style="color:var(--teal)">Reflected</span></p>
+        </div>
+      </div>
+
+      <div class="note-card stored">
+        <div class="note-title"><span class="badge badge-red">critical</span> Stored XSS</div>
+        <ul>
+          <li>Payload saved to DB — fires for <strong>every visitor</strong></li>
+          <li>Inject once, own everyone (1-to-many)</li>
+          <li>Visible in page source via <code>CTRL+U</code></li>
+          <li>Requires DB cleanup to remove</li>
+          <li>Common sinks: comment fields, profiles, to-do lists</li>
+        </ul>
+      </div>
+
+      <div class="note-card reflected">
+        <div class="note-title"><span class="badge badge-teal">medium</span> Reflected XSS</div>
+        <ul>
+          <li>Server echoes input in response (error msg, search result)</li>
+          <li>Payload rides in URL via GET param</li>
+          <li>Must trick victim into clicking crafted URL</li>
+          <li>Shows in server logs — WAFs can detect it</li>
+          <li>Copy URL from address bar after injecting = weaponized link</li>
+        </ul>
+      </div>
+
+      <div class="note-card dom">
+        <div class="note-title"><span class="badge badge-coral">medium</span> DOM XSS</div>
+        <ul>
+          <li>100% client-side — server never sees the payload</li>
+          <li>Input via <code>#</code> fragment (never sent to server)</li>
+          <li><code>innerHTML</code> blocks <code>&lt;script&gt;</code> → use <code>&lt;img onerror&gt;</code></li>
+          <li>Invisible to WAFs, server logs, IDS</li>
+          <li>Read <code>script.js</code> to find Source → Sink chain</li>
+          <li>Common sinks: <code>innerHTML</code>, <code>document.write()</code>, <code>outerHTML</code>, jQuery <code>append()</code></li>
+        </ul>
+      </div>
+
+      <div class="note-card procedure">
+        <div class="note-title">Impact ranking</div>
+        <p style="font-size:.85rem"><span style="color:var(--red)">Stored</span> &gt; <span style="color:var(--teal)">Reflected</span> &gt; <span style="color:var(--coral)">DOM</span></p>
+        <p style="margin-top:.35rem">Stored = fire-and-forget, mass impact.<br>
+        Reflected = one click, one victim, server-visible.<br>
+        DOM = one click, one victim, server-invisible.</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>

