@@ -49,8 +49,18 @@ sudo responder -I eth0 -A
 # 3. ICMP sweep to find live hosts
 fping -asgq 172.16.5.0/23 2>/dev/null > alive.txt
 
+
 # 4. Aggressive Nmap scan on all alive hosts
 sudo nmap -v -A -iL alive.txt -oA host-enum
+
+From the common name it says the Host probabably tells domain controllers
+* hostnames 
+* domain names 
+* certificate authority names
+* ADCS presence
+* naming conventions
+* trust relationships
+We caught kerberos 88 ldap 389 global catolog 3268 dns 53
 
 # 5. Targeted user enumeration with kerbrute
 kerbrute userenum -d INLANEFREIGHT.LOCAL --dc 172.16.5.5 /opt/wordlists/statistically-likely-usernames/jsmith.txt -o valid_users.txt
