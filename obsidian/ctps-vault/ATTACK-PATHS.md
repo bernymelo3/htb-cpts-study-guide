@@ -38,11 +38,31 @@
 | URL parameter reflected in page | `xss/03-reflected-xss.md`, `xss/05-xss-discovery.md` |
 | Comment / profile / forum field rendered to other users | `xss/02-stored-xss.md`, `xss/06-defacing.md` |
 | Client-side JS does `innerHTML`/`document.write` | `xss/04-dom-xss.md` |
-| SQL error / weird response on quote | `sql-injection-fundamentals/08-intro-to-sqli.md` → `09-subverting-query-logic.md` → `11-union-clause.md` → `12-union-injection.md` |
-| Confirmed SQLi, want fast pwn | `sqlmap-fundamentals/04-http-request.md`, `10-os-exploitation.md` |
+| SQL error / weird response on quote | `sql-injection-fundamentals/00-METHODOLOGY.md` (full playbook) or start with `08-intro-to-sqli.md` → `09-subverting-query-logic.md` |
+| Login form with quote error → SQLi confirmed | `sql-injection-fundamentals/00-METHODOLOGY.md` Phase 2 (OR/comment bypass) → Phase 3 (union injection) |
+| Want to dump database via union injection | `sql-injection-fundamentals/00-METHODOLOGY.md` Phase 3–4 (detect columns + enumerate INFORMATION_SCHEMA) |
+| Got SQLi + FILE privilege → want RCE | `sql-injection-fundamentals/00-METHODOLOGY.md` Phase 5 (INTO OUTFILE web shell) |
+| Confirmed SQLi, want fast pwn with tool | `sqlmap-fundamentals/04-http-request.md`, `10-os-exploitation.md` |
 | SQLi behind WAF / CSRF token | `sqlmap-fundamentals/09-bypassing-protections.md` |
 | Need to fuzz hidden params/dirs | `file-inclusion/09-automated-scanning.md`, `web-proxies/10-burp-intruder.md`, `web-proxies/11-zap-fuzzer.md` |
 | Need to manipulate raw request | `web-proxies/04-intercepting-requests.md`, `07-repeating-requests.md`, `08-encoding-decoding.md` |
+
+### Common Web Applications (Tomcat, Jenkins, Splunk, GitLab, ColdFusion, etc.)
+
+**Entry point:** `attacking-common-applications/00-METHODOLOGY.md` — full 5-phase playbook + Decision Tree + Signal→Counter-Move.
+
+| Symptom / State | Try This |
+|---|---|
+| Port 8080/8180 open, unknown app | `attacking-common-applications/00-METHODOLOGY.md` Phase 1 (EyeWitness/Aquatone screenshot to fingerprint) |
+| Tomcat Manager found (port 8080/8180) | `attacking-common-applications/00-METHODOLOGY.md` Phase 2 → try default creds `tomcat:tomcat`, then WAR upload for RCE |
+| Tomcat found but auth fails → port 8009 open | CVE-2020-1938 (Ghostcat) AJP LFI — see `attacking-common-applications/10-attacking-tomcat.md` |
+| Jenkins instance discovered | `attacking-common-applications/12-attacking-jenkins.md` → Script Console RCE (Groovy) if admin, else password spray → `00-METHODOLOGY.md` Phase 2 |
+| Splunk found on port 8000/8089 | `attacking-common-applications/14-attacking-splunk.md` → try default `admin:changeme` → custom malicious app upload for RCE |
+| GitLab found, version < 13.10.3 | `attacking-common-applications/18-attacking-gitlab.md` → CVE-2021-22205 ExifTool RCE (auth req'd; try self-register) |
+| ColdFusion found on port 8500 | `attacking-common-applications/24-attacking-coldfusion.md` → CVE-2010-2861 (dir traversal no auth) + CVE-2009-2265 (FCKeditor RCE no auth) |
+| WordPress/Joomla/Drupal found | `attacking-common-applications/00-METHODOLOGY.md` Phase 2 → enum users, try brute-force, check known plugin vulns |
+| OSTicket / PRTG / ManageEngine found | `attacking-common-applications/00-METHODOLOGY.md` Phase 2 → try default creds (PRTG: `prtgadmin:prtgadmin`), search CVE database |
+| Got shell on app (Tomcat/Jenkins/Splunk) | `attacking-common-applications/00-METHODOLOGY.md` Phase 5 (post-exploit) → extract config files for db/LDAP creds → pivot |
 
 ## 4. Common Services — Initial Access / Lateral Movement
 
