@@ -1,7 +1,7 @@
 # CPTS — Attack-Path Triage Map
 
 **Purpose:** symptom / state → which note to open. Use this when you know *what you have* but not *what to try next*.
-**Updated:** 2026-05-04
+**Updated:** 2026-05-15
 
 ---
 
@@ -44,7 +44,28 @@
 | Need to fuzz hidden params/dirs | `file-inclusion/09-automated-scanning.md`, `web-proxies/10-burp-intruder.md`, `web-proxies/11-zap-fuzzer.md` |
 | Need to manipulate raw request | `web-proxies/04-intercepting-requests.md`, `07-repeating-requests.md`, `08-encoding-decoding.md` |
 
-## 4. AD — by what you currently have
+## 4. Common Services — Initial Access / Lateral Movement
+
+**Entry point:** `common-services/00-METHODOLOGY.md` — full decision tree + Signal→Counter-Move table + Master Cheatsheet.
+
+| Symptom / State | Try This |
+|---|---|
+| Port 445 (SMB) open, no creds | `common-services/00-METHODOLOGY.md` Phase 2 → try null session (`smbmap -H`) |
+| SMB null session works | `common-services/00-METHODOLOGY.md` Phase 2 → enumerate shares, find SSH key or creds in files |
+| SMB null session blocks → have user list | `common-services/00-METHODOLOGY.md` Phase 3 → brute-force (check `--pass-pol` first!) |
+| Port 21 (FTP) open | `common-services/00-METHODOLOGY.md` Phase 2 → try anonymous login (user: `anonymous`, pwd: blank) |
+| FTP anonymous works | `common-services/06-ftp-latest-vulns.md`, `common-services/00-METHODOLOGY.md` Phase 4 (file download) |
+| FTP blocks anonymous | Check CoreFTP version (CVE-2022-22836) → `common-services/00-METHODOLOGY.md` Phase 5 (path traversal) |
+| Port 3389 (RDP) open + found creds | `common-services/00-METHODOLOGY.md` Phase 4 → RDP login, find NTLM hash → PtH |
+| RDP PtH fails (logon failure) | Forgot to enable Restricted Admin Mode — see `common-services/11-attacking-rdp.md` |
+| Port 53 (DNS) open | `common-services/00-METHODOLOGY.md` Phase 2 → try zone transfer (`dig AXFR`) |
+| DNS zone transfer fails | `common-services/13-attacking-dns.md` → subdomain enum (`subbrute`) → try AXFR on each |
+| Port 25 (SMTP) + 110/143 (POP3/IMAP) open | `common-services/00-METHODOLOGY.md` Phase 2 → user enum → password spray → mailbox access |
+| Found file with multiple possible passwords | Try against **all** services: SMB, RDP, FTP, SSH (password reuse is common) |
+| Have SMB creds, RDP also open | Test RDP with same creds (lateral movement); if different, check PtH (`common-services/11-attacking-rdp.md`) |
+| SMB share found, contains `.rdp` / `.kdbx` / `web.config` / `id_rsa` | `common-services/04-finding-sensitive-info.md` → extract and use for next pivot |
+
+## 5. AD — by what you currently have
 
 | State | Next steps |
 |-------|------------|
@@ -64,21 +85,28 @@
 | Need to enum security controls (Defender/AppLocker/LAPS) | `ad-enum-attacks/13-enumerating-security-controls.md` |
 | WinRM session keeps failing on second hop | `ad-enum-attacks/24-winrm-double-hop-kerberos.md` |
 
-## 5. Pivoting / Tunneling
+## 6. Pivoting / Tunneling
 
-| Need | Note |
-|------|------|
-| Local port forward via SSH | `pivoting-tunneling/05-ssh-port-forwarding.md` |
-| SOCKS proxy via SSH (most common) | `pivoting-tunneling/05-ssh-port-forwarding.md` (dynamic forward + proxychains) |
-| Pivot from a Windows host | `pivoting-tunneling/09-plink-windows.md` |
-| VPN-like tunnel over SSH | `pivoting-tunneling/10-sshuttle.md` |
-| Pivot via Meterpreter | `pivoting-tunneling/06-meterpreter-port-forwarding.md` |
-| Reverse shell through firewall via socat | `pivoting-tunneling/07-socat-redirection.md` |
-| Pivot through DMZ web server | `pivoting-tunneling/11-rpivot.md` |
-| Only ICMP outbound | `pivoting-tunneling/13-ptunnel-icmp.md` |
-| Multi-hop to DC (skills assessment style) | `pivoting-tunneling/skills-assessment.md` |
+**Entry point:** `pivoting-tunneling/00-METHODOLOGY.md` — full decision tree + Signal→Counter-Move table.
 
-## 6. Credential cracking / brute force
+| Symptom / state | Goes to |
+|---|---|
+| Just popped a host, no idea what to do next | `00-METHODOLOGY.md` Phase 1 — run `ifconfig`/`ipconfig /all`, look for second NIC |
+| Compromised host has 2+ NICs / extra subnet | `00-METHODOLOGY.md` Phase 2 — sweep new subnet from inside the pivot |
+| Have SSH on pivot, want SOCKS for everything | `05-ssh-port-forwarding.md` (dynamic `-D`) + proxychains config |
+| Have SSH, want native tools (no proxychains prefix) | `10-sshuttle.md` (transparent VPN over SSH) |
+| Need just ONE port from internal target | `05-ssh-port-forwarding.md` (local `-L`) or `06-meterpreter-port-forwarding.md` (`portfwd add`) |
+| Internal target can't reach my tun0, need reverse shell | `00-METHODOLOGY.md` §4c — payload `LHOST` = pivot's internal IP; `ssh -R` or `socat fork` |
+| Pivot is Windows, no native ssh client | `09-plink-windows.md` + Proxifier |
+| Meterpreter on pivot, no SSH access | `06-meterpreter-port-forwarding.md` (`autoroute` + `socks_proxy` / `portfwd`) |
+| Plain shell on pivot, no SSH, no MSF | `07-socat-redirection.md` (TCP4-LISTEN fork redirector) |
+| Outbound TCP blocked from pivot, ICMP allowed | `13-ptunnel-icmp.md` (last resort) |
+| Pivot can dial out to me but I can't reach it inbound | `11-rpivot.md` (reverse SOCKS, needs python2.7) |
+| `proxychains nmap` returns all-closed | `00-METHODOLOGY.md` Signal→Counter — switch `-sS` to `-sT -Pn` |
+| Reverse shell never arrives | `00-METHODOLOGY.md` Signal→Counter — listener BEFORE payload, LHOST = pivot internal IP |
+| Multi-hop to DC (skills assessment style) | `skills-assessment.md` + `00-METHODOLOGY.md` Phase 6 |
+
+## 7. Credential cracking / brute force
 
 | Have | Next |
 |------|------|
@@ -87,7 +115,7 @@
 | Need to spray known cred across services | `login-brute-forcing/06-hydra.md`, `09-medusa.md` |
 | Need to filter wordlist before attack | `login-brute-forcing/05-hybrid-attacks.md` |
 
-## 7. Reporting (when the engagement is "done")
+## 8. Reporting (when the engagement is "done")
 
 - Methodology overview → `documentation/01-intro-to-documentation-reporting.md`
 - Note structure & evidence handling → `documentation/02-notetaking-and-organization.md`
@@ -96,7 +124,7 @@
 - Writing a finding → `documentation/05-how-to-write-up-a-finding.md`
 - QA / polish / templates → `documentation/06-reporting-tips-and-tricks.md`
 
-## 8. Gaps in the vault (don't waste time searching here — go to HTB notes)
+## 9. Gaps in the vault (don't waste time searching here — go to HTB notes)
 
 - `nmap/`, `footprinting/`, `ffuf/`, `web-recon/` — empty
 - `shells-payloads/` — empty (need for revshells, msfvenom, payload formats)
