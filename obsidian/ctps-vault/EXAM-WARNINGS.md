@@ -6,23 +6,18 @@ A pre-exam pitfall checklist tailored to **this vault's actual state**. Read thi
 
 ---
 
-## 0. Vault gaps you must be aware of going in
+## 0. Vault state going in (UPDATED 2026-05-16 — gaps closed)
 
-These are the modules where you currently have **no notes** or thin notes. Before exam start, either fill them or accept that you'll be working from HTB Academy / external sources for that topic. Do not discover this mid-exam.
+**The earlier "empty modules" warning is obsolete.** Per `METHODOLOGY-REGISTRY.md`, all 24 attack-chain modules now have a gold-standard `00-METHODOLOGY.md` (incl. `nmap`, `footprinting`, `ffuf`, `web-recon`, `shells-payloads`, `linux-privallege-escalation`, `windows-privesc`, `password-attacks`). Recon, fuzzing, shells, and both privesc chains are **covered**. Trust this vault during the exam.
+
+Remaining real gaps (low risk — main chains covered):
 
 | Topic | Vault state | Risk level |
 |---|---|---|
-| `nmap/` | empty | **HIGH** — recon is step 1 of every box |
-| `footprinting/` | empty | **HIGH** — service-by-service enumeration is the core skill |
-| `ffuf/` | empty | **HIGH** — directory/vhost/parameter fuzzing on every web target |
-| `web-recon/` | empty | **HIGH** — info gathering web edition (subdomains, vhosts, OSINT) |
-| `shells-payloads/` | empty | **HIGH** — revshells, msfvenom, payload formats — needed every box |
-| `linux-privesc/` | empty | **HIGH** — at least one Linux box almost certain |
-| `windows-privesc/` | empty | **HIGH** — at least one Windows box almost certain |
-| `password-attacks/` | overview stub only | **MEDIUM** — the techniques are listed but per-tool detail missing (john, hashcat, SAM dump, LSASS, DCSync, PtH, PtT, PtC) |
-| `ad-enum-attacks/` §26, §28, §30, §33, §34, §35 | missing | **MEDIUM** — tail of trust attacks + hardening; main chain is covered |
+| `ad-enum-attacks/` §26, §28, §30, §33, §34, §35 | missing | **LOW** — tail of trust attacks + hardening; primary AD chain (recon → roast → ACL → DCSync → trust hop) is complete |
+| `vulnerability-assessment/`, `penetration-testing-process/` | theory only (no attack chain) | none — covered by `getting-started/00-METHODOLOGY.md` |
 
-**Decision before exam start:** for each HIGH-risk row, decide *now* whether you'll (a) write the notes, (b) bookmark the HTB module pages, or (c) prepare a one-page cheat sheet. Don't enter the exam with this unresolved.
+**Before exam start:** read `00-EXAM-MASTER.md` (the L0 spine) end to end, then skim `ATTACK-PATHS.md`. Those two + the module methodologies are your complete kit.
 
 ---
 
@@ -42,7 +37,7 @@ Pitfalls (advice paraphrased from a real CPTS pass write-up; emphasized because 
 - **Closed ports lying.** UDP scans, full TCP scans (`-p-`), and slower scans find what `-T4 --top-ports 1000` misses. Run a full TCP scan in the background while you start exploiting the easy stuff.
 - **Not reading service banners carefully.** Outdated software → known CVE. The version is in the banner.
 
-**Vault hooks:** none — you have to write these or rely on HTB notes. Write at minimum a one-page cheat: nmap flags, ffuf flags, common service-enum commands. Mirror the structure used in `common-services/` and `pivoting-tunneling/`.
+**Vault hooks:** `nmap/00-METHODOLOGY.md`, `footprinting/00-METHODOLOGY.md`, `ffuf/00-METHODOLOGY.md`, `web-recon/00-METHODOLOGY.md` (all complete) + `ATTACK-PATHS.md` §1b–§1e. Recon is now fully covered — the discipline gap, not the notes gap, is what gets people stuck.
 
 ---
 
@@ -85,11 +80,12 @@ You have strong AD coverage (32 notes), but watch for:
 
 ## 5. Privilege escalation — the "I'm stuck" trap
 
-You have **no privesc notes**. Mitigations before exam start:
+Privesc is now fully covered: `linux-privallege-escalation/00-METHODOLOGY.md` (7-phase) and `windows-privesc/00-METHODOLOGY.md` (8-phase), routed by `ATTACK-PATHS.md` §5b/§5c. Operational reminders:
 
-- **Linux:** keep `linpeas.sh` and `pspy64` ready. Memorize: SUID hunt, sudo `-l`, cron jobs, writable `/etc/`, capabilities, kernel exploits last.
-- **Windows:** keep `winPEASx64.exe`, `PowerUp.ps1`, `SharpUp`, `Seatbelt` ready. Memorize: token privileges (`SeImpersonate` → Potato), unquoted service paths, AlwaysInstallElevated, stored creds in registry/files.
-- **Don't kernel-exploit first.** It's the noisiest, most fragile, and graders dislike chains that depend on a CVE when a misconfig was sitting right there.
+- **Linux:** keep `linpeas.sh` and `pspy64` ready. First moves: `id`, `sudo -l`, SUID hunt, cron, capabilities, writable `/etc/`. → ATTACK-PATHS §5c.
+- **Windows:** keep `winPEASx64.exe`, `PowerUp.ps1`, `SharpUp`, `Seatbelt` ready. First moves: `whoami /priv` + `whoami /groups` from an elevated prompt — `SeImpersonate` → Potato, etc. → ATTACK-PATHS §5b.
+- **Don't kernel-exploit first.** Noisiest, most fragile; graders dislike a CVE chain when a misconfig was right there. Kernel = last resort per both methodologies.
+- Time-box privesc to ~45 min of structured checks (see `00-EXAM-MASTER.md`) before parking the host and coming back.
 
 ---
 

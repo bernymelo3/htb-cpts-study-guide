@@ -1,6 +1,7 @@
 # CPTS — Attack-Path Triage Map
 
 **Purpose:** symptom / state → which note to open. Use this when you know *what you have* but not *what to try next*.
+**This is L1.** For the macro engagement loop (where flags live, time-boxes, per-host loop, report cadence) read **`00-EXAM-MASTER.md`** (L0) first; it routes back into this map.
 **Updated:** 2026-05-16
 
 ---
@@ -49,6 +50,49 @@
 | Everything resolves / every vhost "Found" | Signal→Counter — wildcard DNS/vhost; validate via HTTP fetch, filter `-fs`/`--exclude-length` |
 | Recon done — where next | Phase 7 → vhosts→ffuf, stack→web-attacks/common-apps, internal IPs→pivoting, leaked keys→password-attacks |
 
+## 1c. Content Discovery & Fuzzing — ffuf (have a host, need hidden content/inputs)
+
+**Entry point:** `ffuf/00-METHODOLOGY.md` — 7-phase chain (dir → page/ext → recursion → host discovery → filter calibration → param GET/POST → value → flag) + Decision Tree + Signal→Counter-Move.
+
+| Symptom / State | Try This |
+|---|---|
+| Web port open, no site map, need directories | `ffuf/00-METHODOLOGY.md` Phase 1 → `ffuf -ic -w directory-list-2.3-small.txt:FUZZ -u http://IP:PORT/FUZZ` |
+| Found a dir, want hidden files/pages | Phase 2 → two-stage: `indexFUZZ` to confirm ext, then `FUZZ.<ext>` |
+| Sub-domain fuzz returns `Errors: ~4997` / 0 hits (lab `*.htb`) | Phase 4.B → no public DNS; switch to **vhost fuzz** `-H 'Host: FUZZ.academy.htb'` (`/etc/hosts` first) |
+| Every ffuf result is `200 OK`, identical `Size:` | Phase 5 → not a dead end; read baseline → `-fs <n>` or `-ac` (calibrate) |
+| PHP POST param fuzz = all misses | Phase 6.B gotcha → add `-H 'Content-Type: application/x-www-form-urlencoded'` (else `$_POST` empty) |
+| Have a confirmed param name, need the magic value | Phase 7 → `seq 1 1000 > ids.txt`, value-fuzz, then `curl -s … | grep HTB` (ffuf shows hit/miss only) |
+
+## 1d. Service Footprinting — open port, need to enumerate the service
+
+**Entry point:** `footprinting/00-METHODOLOGY.md` — 5-phase flow (passive infra → port triage → per-service block → credential-reuse loop → convert to access) + Decision Tree + Signal→Counter-Move + per-service blocks for FTP/SMB/NFS/DNS/SMTP/IMAP/SNMP/MySQL/MSSQL/Oracle/IPMI/SSH/Rsync.
+
+| Symptom / State | Try This |
+|---|---|
+| Open ports found, don't know what to run per service | `footprinting/00-METHODOLOGY.md` Phase 3 → run that port's block (banner → anon → misconfig → loot) |
+| FTP/SMB/NFS/Rsync open | Phase 3.1–3.3/3.12 → anonymous/null FIRST: `ftp <IP>`, `smbclient -N -L //<IP>`, `showmount -e <IP>`, `nc -nv <IP> 873` |
+| DNS (53) open | Phase 3.4 → `dig axfr <domain> @<NS>`; apex fails → `dig axfr internal.<domain> @<NS>` |
+| SMB `enumdomusers` ACCESS_DENIED | Phase 3.2 Signal→Counter → RID-brute `seq 500 1100` → `rpcclient queryuser 0x<hex>` |
+| SNMP community found, need creds | Phase 3.10 → `snmpwalk` then grep process-args (`hrSWRunPerf` leaks `chpasswd`/recovery-script passwords) |
+| IMAP/POP3 login works, looking for loot | Phase 3.6 → `FETCH 1 (BODY[])` — emails often carry whole SSH private keys |
+| IPMI (623/udp) open | Phase 3.11 → `ipmi_dumphashes` → `hashcat -m 7300` (RAKP pre-auth, no login) |
+| Have a cred/key but current service hardened | Phase 4 Credential-Reuse Loop → test it on SMB/SSH/RDP/MySQL/MSSQL/IMAP (solves all 3 labs) |
+| Found `id_rsa` in a share/email | Phase 4 → `chmod 600 id_rsa; ssh -i id_rsa <user>@<IP>` (user = banner/file-owner name) |
+| Nmap says MySQL/MSSQL empty password | Signal→Counter — NSE false positive; hand-verify `mysql -u root -h <IP>` |
+
+## 1e. Network Scanning — Nmap (have an IP/range, need the port+service map)
+
+**Entry point:** `nmap/00-METHODOLOGY.md` — 7-phase flow (host discovery → full TCP `-p-` → `-sV` → NSE → save → tune → evade) + Decision Tree + Signal→Counter-Move + Master Cheatsheet.
+
+| Symptom / State | Try This |
+|---|---|
+| Have a CIDR/IP, nothing scanned | `nmap/00-METHODOLOGY.md` Phase 1–2 → `nmap -sn` then `sudo nmap --open -p- $IP -T4` (never top-1000 only) |
+| Nmap says **host seems down** but it should be up | Phase 7 → `-Pn -n --disable-arp-ping`; on L2 add `--disable-arp-ping` to test ICMP |
+| Ports show **filtered** for no reason | Phase 7 → **`--source-port 53` / `-g53` FIRST**; then `-sA` to map firewall; reuse src-port on follow-up `nc` |
+| Scan crawling / `-p-` taking hours | Phase 6 → `-T4 --min-rate 1000 --max-retries 1`; re-verify "missing" with slow pass |
+| Status page counting IDS alerts (exam) | Phase 7 OPSEC fork → NO `-O`/`-A`/`--script vuln`; `sudo nmap -sV --top-ports 10 --disable-arp-ping $IP`, OS from banner |
+| `SERVICE` column wrong / weird port (31337/50000) | Phase 3–4 → it's a guess from `nmap-services`; `nc -nv $IP $PORT` banner-grab to confirm |
+
 ## 2. Port → service → notes
 
 | Port | Service | Primary note(s) |
@@ -82,7 +126,7 @@
 | Got SQLi + FILE privilege → want RCE | `sql-injection-fundamentals/00-METHODOLOGY.md` Phase 5 (INTO OUTFILE web shell) |
 | Confirmed SQLi, want fast pwn with tool | `sqlmap-fundamentals/04-http-request.md`, `10-os-exploitation.md` |
 | SQLi behind WAF / CSRF token | `sqlmap-fundamentals/09-bypassing-protections.md` |
-| Need to fuzz hidden params/dirs | `file-inclusion/09-automated-scanning.md`, `web-proxies/10-burp-intruder.md`, `web-proxies/11-zap-fuzzer.md` |
+| Need to fuzz hidden params/dirs | `ffuf/00-METHODOLOGY.md` (primary — full fuzzing chain), `file-inclusion/09-automated-scanning.md`, `web-proxies/10-burp-intruder.md` |
 | Need to manipulate raw request | `web-proxies/04-intercepting-requests.md`, `07-repeating-requests.md`, `08-encoding-decoding.md` |
 | `401`/`403`/"Access Denied" on a dir or action, but app works some ways | `web-attacks/00-METHODOLOGY.md` Phase 1.A (verb tampering — `OPTIONS` then replay with `HEAD`) |
 | Input filter blocks payload (`Malicious Request Denied!`) but accepts benign | `web-attacks/00-METHODOLOGY.md` Phase 1.B (GET→POST, `$_GET` vs `$_REQUEST`) |
@@ -135,6 +179,35 @@
 | `.php` upload rejected by filter | Signal table → Burp: change `Content-Type` to `image/gif` (+ `GIF89a` magic bytes if magic-byte check) |
 | Windows box, ports 139/445, hint "Blue" | Phase 3D → `auxiliary/scanner/smb/smb_ms17_010` → `exploit/windows/smb/ms17_010_psexec` (EternalBlue → SYSTEM) |
 | Pivot: payload from foothold won't call back | Gotcha #2 → LHOST = foothold internal IP (`ip a` on foothold), never Pwnbox external IP |
+
+## 3c. Web Proxies — Burp / ZAP operations (need to see/modify HTTP traffic)
+
+**Entry point:** `web-proxies/00-METHODOLOGY.md` — 9 operations (setup → intercept req → intercept resp → auto modify → repeat → encode/decode → fuzz → scan → proxy CLI) + Decision Tree + Signal→Counter-Move. Golden rule: empty Proxy History = broken setup, not a broken app.
+
+| Symptom / State | Try This |
+|---|---|
+| Proxy History empty / browser not capturing | `web-proxies/00-METHODOLOGY.md` Op 1 + Signal table → `ss -tlnp \| grep 8080`, `curl -x`; Burp on 8080 → ZAP moved to 8081 |
+| HTTPS cert warnings on every site | Op 1 → import CA cert into Firefox **Authorities**, tick "Trust this CA to identify websites" |
+| Front-end JS blocks input / disabled button / maxlength | Op 2 (intercept request) or Op 3 (intercept response: strip `disabled`, `type=number`→`text`) |
+| Same edit needed on every request (UA spoof, perma-bypass) | Op 4 → Burp HTTP match-and-replace / ZAP Replacer |
+| Cookie/param is encoded gibberish | Op 6 → hex-only=ASCII hex, mixed+`=`=Base64; peel, note order, reverse |
+| Need to fuzz dirs/params/cookie, free Burp too slow | Op 7 → ZAP Fuzzer (no throttle); chained prefix→B64→hex must be Burp Intruder |
+| Need automated vuln scan, only Community edition | Op 8 → ZAP Spider → Active Scan (Burp Scanner is Pro-only) |
+| Want to inspect what a CLI tool / MSF module sends | Op 9 → `proxychains -q <cmd>` or MSF `set PROXIES HTTP:127.0.0.1:8080` |
+
+## 3d. Metasploit operations — driving MSF / msfvenom / Meterpreter
+
+**Entry point:** `using-the-metasploit/00-METHODOLOGY.md` — 8-phase flow (DB setup → find module → pick payload → catch session → Meterpreter post-ex → chain local priv-esc → standalone msfvenom → import/port) + Decision Tree + Signal→Counter-Move. Golden rule: a failing module ≠ no vuln.
+
+| Symptom / State | Try This |
+|---|---|
+| `Exploit completed, but no session was created` | `using-the-metasploit/00-METHODOLOGY.md` Signal table → pin `set target <id>` (not Automatic), try staged↔single payload, `-a x86`, verify `LHOST tun0` |
+| Port still bound / `Address already in use` after Ctrl+C | Phase 3 / Gotcha #1 → handler survives as a job: `jobs -l` → `jobs -k <id>`; or `set LPORT <new>` |
+| msfvenom payload never calls back to `multi/handler` | Phase 6 → `multi/handler` `set payload` must EXACTLY equal `msfvenom -p`; LHOST/LPORT must match |
+| Session opens then dies in seconds | Signal table → MSF5↔MSF6 mismatch (regenerate payload on matching version) or web-worker recycle (`migrate` early) |
+| Meterpreter `getuid` = Access denied / low-priv | Phase 4 → `ps` → `steal_token <pid>`; then Phase 5 → background → `local_exploit_suggester` → `set SESSION` |
+| Need an ExploitDB exploit MSF doesn't ship | Phase 8 → `searchsploit`, drop snake_case `.rb` in modules tree, `reload_all` |
+| AV eating the dropper | Phase 7 → `-k -x` template / double-RAR / packer — NOT more `-i` iterations |
 
 ## 4. Common Services — Initial Access / Lateral Movement
 
@@ -302,7 +375,9 @@
 
 ## 9. Gaps in the vault (don't waste time searching here — go to HTB notes)
 
-- `nmap/`, `footprinting/`, `ffuf/` — notes exist, methodology pending
+- `footprinting/` — full methodology + 21 notes (see §1d)
+- `nmap/` — notes exist, methodology pending
+- `ffuf/` — full methodology + 14 notes (see §1c)
 - `web-recon/` — full methodology + 20 notes (see §1b)
 - `shells-payloads/` — full methodology + 18 notes (see §3b)
 - `linux-privallege-escalation/` — full methodology + 28 notes (see §5c)

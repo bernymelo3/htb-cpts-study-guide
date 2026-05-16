@@ -373,6 +373,7 @@ web-attacks/14-xxe-local-file-disclosure.md | Section 14 — Local File Disclosu
 web-attacks/15-xxe-advanced-file-disclosure.md | Section 15 — Advanced File Disclosure (XXE) | xxe, cdata, parameter-entities, error-based, dtd, file-disclosure
 web-attacks/16-xxe-blind-data-exfiltration.md | Section 16 — Blind Data Exfiltration (XXE) | xxe, oob, blind, exfiltration, php-filter, xxeinjector
 web-attacks/18-web-attacks-skills-assessment.md | Skills Assessment — Web Attacks | idor, verb-tampering, xxe, php-filter, skills-assessment, chained-attack
+web-proxies/00-METHODOLOGY.md | Using Web Proxies — Burp / ZAP Operations Playbook | methodology, web-proxies, burp, burp-suite, zap, owasp-zap, exam, cheatsheet, decision-tree, intercept, repeater, intruder, fuzzer, match-and-replace, foxyproxy, ca-certificate, encoding, decoding, base64, ascii-hex, proxychains, metasploit-proxy, command-injection, panic
 web-proxies/00-overview.md | <untagged> | -
 web-proxies/01-intro.md | Section 1 — Intro to Web Proxies | theory, web-proxy, burp-suite, zap, introduction, concept
 web-proxies/02-installation.md | <untagged> | -
