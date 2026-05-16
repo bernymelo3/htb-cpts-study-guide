@@ -82,6 +82,7 @@ attacking-common-applications/5attacking_common_applications_joomla_discovery_en
 attacking-common-applications/6-attacking_common_applications_attacking_joomla.md | Section 6 — Attacking Joomla | joomla, rce, template-editor, directory-traversal, cve-2019-10945, web-shell
 attacking-common-applications/7-attacking_common_applications_drupal_discovery_enumeration.md | Section 7 — Drupal - Discovery & Enumeration | drupal, cms, enumeration, droopescan, fingerprinting, nodes
 attacking-common-applications/8-attacking_common_applications_attacking_drupal.md | Section 8 — Attacking Drupal | drupal, rce, drupalgeddon, php-filter, module-upload, cve
+command-injetions/00-METHODOLOGY.md | Command Injections — Detect → Inject → Filter-Bypass → RCE Playbook | methodology, command-injection, exam, cheatsheet, decision-tree, injection-operators, filter-bypass, waf-bypass, ifs, base64, obfuscation, bashfuscator, host-checker, rce
 command-injetions/01-intro.md | Section 1 — Intro to Command Injections | theory, concept, command-injection, injection-types, owasp
 command-injetions/02-detection.md | Section 2 — Detection | command-injection, detection, injection-operators, ping, host-checker
 command-injetions/03-injecting-commands.md | Section 3 — Injecting Commands | command-injection, burp-suite, front-end-bypass, url-encoding, input-validation

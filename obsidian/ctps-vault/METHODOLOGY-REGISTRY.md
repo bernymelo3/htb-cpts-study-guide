@@ -23,13 +23,29 @@ Tracks which CPTS module folders have an exam-ready `00-METHODOLOGY.md` playbook
 | windows-privesc            |                32 | Done                                                                            | 712 | 2026-05-16 |
 | linux-privallege-escalation |               28 | Done                                                                            | 713 | 2026-05-16 |
 | password-attacks           |                26 | Done                                                                            | 714 | 2026-05-16 |
-| web-proxies                |                17 | Pending                                                                         |   — | —          |
+| web-proxies                |                17 | Pending                                                                         | 708 | —          |
+| web-attacks                |                17 | Done                                                                            | 722 | 2026-05-16 |
+| web-recon                  |                20 | Done                                                                            | 723 | 2026-05-16 |
+| footprinting               |    21 (has 02-enum) | Pending (retrofit 02-enumeration-methodology.md → standard 00 format)          | 718 | —          |
+| nmap                       |                13 | Pending                                                                         | 719 | —          |
+| ffuf                       |                14 | Pending                                                                         | 716 | —          |
+| command-injetions          |                12 | Done                                                                            | 715 | 2026-05-16 |
+| file-transfers             |                11 | Done                                                                            | 717 | 2026-05-16 |
+| shells-payloads            |                18 | Done                                                                            | 720 | 2026-05-16 |
+| using-the-metasploit       |                16 | Pending                                                                         | 721 | —          |
+| vulnerability-assessment   |                 0 | Skip (no notes; process/theory module — not an attack chain)                   |   — | —          |
+| attacking-enterprise-networks |              0 | Skip (no notes; capstone — covered by individual module methodologies)         |   — | —          |
+| penetration-testing-process |                0 | Skip (process theory — covered by getting-started methodology)                 |   — | —          |
+| report                     |                 0 | Skip (reporting — same rationale as documentation; PDF only)                   |   — | —          |
 
 ## Next Up
 
 Tier 2 high-value audits → retrofit `file-inclusion`, `sqlmap-fundamentals`, `login-brute-forcing`, `xss` for Signal→Counter-Move + Decision Tree if missing. Tier 3 lowest priority: `web-proxies/`.
 
+New tracked Pending modules (suggested order by exam value): ~~`web-attacks`~~ (done 722) → ~~`command-injetions`~~ (done 715) → ~~`web-recon`~~ (done 723) → ~~`shells-payloads`~~ (done 720) → ~~`file-transfers`~~ (done 717) → `footprinting` (retrofit) → `ffuf` → `nmap` → `using-the-metasploit`.
+
 > `documentation/` skipped — reporting module, not an attack chain. If a reporting playbook is wanted later, write it as a separate "report-writing checklist" doc, not in the methodology decision-tree format.
+> `vulnerability-assessment/`, `attacking-enterprise-networks/`, `penetration-testing-process/`, `report/` skipped — empty folders / process-theory or capstone material, not standalone attack chains.
 
 ## ID Allocation (methodology files only)
 
@@ -53,5 +69,14 @@ To keep methodology IDs from clashing with section-note IDs, allocate from a ded
 | 712 | windows-privesc |
 | 713 | linux-privallege-escalation |
 | 714 | password-attacks |
+| 715 | command-injetions |
+| 716 | ffuf |
+| 717 | file-transfers |
+| 718 | footprinting |
+| 719 | nmap |
+| 720 | shells-payloads |
+| 721 | using-the-metasploit |
+| 722 | web-attacks |
+| 723 | web-recon |
 
 Update this table when a new methodology is written.

