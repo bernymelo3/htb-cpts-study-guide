@@ -22,8 +22,8 @@ Tracks which CPTS module folders have an exam-ready `00-METHODOLOGY.md` playbook
 | getting-started            |                 7 | Done (foundational pentest methodology + 6 topic notes)                        | 711 | 2026-05-16 |
 | windows-privesc            |                32 | Done                                                                            | 712 | 2026-05-16 |
 | linux-privallege-escalation |               28 | Done                                                                            | 713 | 2026-05-16 |
+| password-attacks           |                26 | Done                                                                            | 714 | 2026-05-16 |
 | web-proxies                |                17 | Pending                                                                         |   — | —          |
-| password-attacks           |                 1 | Skip (too thin until more notes added)                                          |   — | —          |
 
 ## Next Up
 
@@ -52,5 +52,6 @@ To keep methodology IDs from clashing with section-note IDs, allocate from a ded
 | 711 | getting-started |
 | 712 | windows-privesc |
 | 713 | linux-privallege-escalation |
+| 714 | password-attacks |
 
 Update this table when a new methodology is written.

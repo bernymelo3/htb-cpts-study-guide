@@ -199,12 +199,29 @@
 | Reverse shell never arrives | `00-METHODOLOGY.md` Signal→Counter — listener BEFORE payload, LHOST = pivot internal IP |
 | Multi-hop to DC (skills assessment style) | `skills-assessment.md` + `00-METHODOLOGY.md` Phase 6 |
 
-## 7. Credential cracking / brute force
+## 7. Credential cracking / brute force / theft
 
-| Have | Next |
+**Entry point:** `password-attacks/00-METHODOLOGY.md` — 7-phase Credential Theft Shuffle + Decision Tree + Signal→Counter-Move + hashcat-mode table. Golden rule: don't crack what you can pass; spray every new hash/cred across every host before escalating.
+
+| Have / Symptom | Try This |
 |------|------|
-| NTLMv2 hash from Responder | hashcat `-m 5600` (see `ad-enum-attacks/06`/`07`) |
+| Unknown hash string, don't know format | `00-METHODOLOGY.md` Phase 2 → `hashid -j` → `[[password-attacks/02-introduction-to-password-cracking]]` / `03` / `04` |
+| Hash to crack (have GPU/time) | dictionary → `+best64.rule` → mask → custom OSINT list (`password-attacks/04`, `05`) |
+| Encrypted file (SSH key/Office/PDF/ZIP/KeePass) | `password-attacks/06-cracking-protected-files.md`, `07` → `*2john` → john/hashcat |
+| BitLocker `.vhd` | `password-attacks/07-cracking-protected-archives.md` → `bitlocker2john -i` → `-m 22100` → dislocker mount |
+| Reachable WinRM/SSH/RDP/SMB, no creds | `password-attacks/08-network-services.md` (netexec/hydra/evil-winrm/xfreerdp) |
+| User list / leaked pairs / vendor device | `password-attacks/09-spraying-stuffing-defaults.md` (pull lockout policy FIRST) |
+| Shell on host, hunt creds first | Linux `password-attacks/17`, Windows `password-attacks/15`; saved cred → `runas /savecred` (`13`) |
+| pcap / sniffing position | `password-attacks/18-credential-hunting-in-network-traffic.md` (Pcredz + Wireshark) |
+| SMB share read access | `password-attacks/19-credential-hunting-in-network-shares.md` (Snaffler/MANSPIDER/nxc --spider) |
+| Local admin/root on a host | dump: SAM/SECURITY/SYSTEM (`11`), LSASS (`12`), CredMan (`13`), Linux shadow/keytab (`16`/`22`) |
+| Have an NT hash, not cracked | **don't crack** → `password-attacks/20-pass-the-hash.md` (spray `nxc --local-auth -H` + psexec/evil-winrm) |
+| Have `.kirbi`/`.ccache`/keytab | `password-attacks/21-pass-the-ticket-from-windows.md` / `22` (Linux: kinit/KRB5CCNAME) |
+| Have a `.pfx` cert / `AddKeyCredentialLink` edge | `password-attacks/23-pass-the-certificate.md` (ESC8/ShadowCred → gettgtpkinit → getnthash) |
+| DA / replication / DC code-exec | `password-attacks/14-attacking-active-directory-and-ntds.md` → NTDS/DCSync → PtH Administrator |
+| NTLMv2 hash from Responder | hashcat `-m 5600` (see `ad-enum-attacks/06`/`07`, `password-attacks/18`) |
 | Kerberoast TGS hash | hashcat `-m 13100` (see `ad-enum-attacks/17`) |
+| Multi-hop shuffle to DC | `password-attacks/26-skills-assessment.md` + `00-METHODOLOGY.md` Decision Tree |
 | Need to spray known cred across services | `login-brute-forcing/06-hydra.md`, `09-medusa.md` |
 | Need to filter wordlist before attack | `login-brute-forcing/05-hybrid-attacks.md` |
 
@@ -222,7 +239,7 @@
 - `nmap/`, `footprinting/`, `ffuf/`, `web-recon/` — empty
 - `shells-payloads/` — empty (need for revshells, msfvenom, payload formats)
 - `linux-privallege-escalation/` — full methodology + 28 notes (see §5c)
-- `password-attacks/` — only overview stub (john/hashcat/SAM/LSASS/PtH/PtT detail missing)
+- `password-attacks/` — full methodology + 26 notes (see §7)
 - `ad-enum-attacks/` — sections 26, 28, 30, 33, 34, 35 missing
 
 ## How to use this with Claude (cheapest path)

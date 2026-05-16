@@ -185,6 +185,8 @@
   },
   "active": "00062134f338bfa8",
   "lastOpenFiles": [
+    "SEARCH.md.new",
+    "password-attacks/00-METHODOLOGY.md",
     "linux-privallege-escalation/00-METHODOLOGY.md",
     "windows-privesc/00-METHODOLOGY.md",
     "xss/00-METHODOLOGY.md",
@@ -209,8 +211,6 @@
     "ad-enum-attacks/06-llmnr-nbtns-poisoning-linux.md",
     "ad-enum-attacks/05-initial-domain-enum.md",
     "attacking-common-applications/5attacking_common_applications_joomla_discovery_enumeration.md",
-    "attacking-common-applications/4-attacking_common_applications_attacking_wordpress.md",
-    "attacking-common-applications/4-attacking_common_applications_joomla_discovery_enumeration.md",
     "Sem título 2.canvas",
     "attacking-common-applications/Não confirmado 990429.crdownload",
     "attacking-enterprise-networks",
