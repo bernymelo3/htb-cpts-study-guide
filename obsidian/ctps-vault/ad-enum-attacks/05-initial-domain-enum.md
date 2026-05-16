@@ -60,7 +60,25 @@ From the common name it says the Host probabably tells domain controllers
 * ADCS presence
 * naming conventions
 * trust relationships
-We caught kerberos 88 ldap 389 global catolog 3268 dns 53
+	We caught kerberos 88 ldap 389 global catolog 3268 dns 53
+	And we caught the domain name most important
+	AD domain
+	Kerberos realm
+	LDAP target naming
+	We can use kerbrute
+	Bloodhound
+	LDAP queriesSMB auth attempts
+*How to know if we are dealing with a forest*
+
+ldapsearch -x -H ldap://172.16.5.5 -s base namingcontexts
+
+LDAP naming contexts give us domain-level and forest-level partitions:
+The presence of Configuration, Schema, and ForestDNSZones confirms DC participates in an Active Directory forest structure.
+
+
+
+How do we know we are dealing with multiple forests?
+
 
 # 5. Targeted user enumeration with kerbrute
 kerbrute userenum -d INLANEFREIGHT.LOCAL --dc 172.16.5.5 /opt/wordlists/statistically-likely-usernames/jsmith.txt -o valid_users.txt

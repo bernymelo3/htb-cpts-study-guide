@@ -75,9 +75,9 @@ SMB  172.16.5.5  445  ACADEMY-EA-DC01  [+] INLANEFREIGHT.LOCAL\sgage:Welcome1
 Answer: **sgage**
 
 ## Lab — Questions & Answers
-| Q | Answer | Found In / Method |
-|---|--------|-------------------|
-| Q1: Find the user account starting with "s" that has the password Welcome1 | sgage | `sudo crackmapexec smb 172.16.5.5 -u valid_users.txt -p Welcome1 \| grep +` — user list built via `enum4linux -U` |
+| Q                                                                          | Answer | Found In / Method                                                                                                 |
+| -------------------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------- |
+| Q1: Find the user account starting with "s" that has the password Welcome1 | sgage  | `sudo crackmapexec smb 172.16.5.5 -u valid_users.txt -p Welcome1 \| grep +` — user list built via `enum4linux -U` |
 
 ## Key Takeaways
 - rpcclient success is not obvious — you must grep for `Authority` in the output; absence of it means failure.

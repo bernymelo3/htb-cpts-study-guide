@@ -1,7 +1,27 @@
 # CPTS — Attack-Path Triage Map
 
 **Purpose:** symptom / state → which note to open. Use this when you know *what you have* but not *what to try next*.
-**Updated:** 2026-05-15
+**Updated:** 2026-05-16
+
+---
+
+## 0. Getting Started — Foundational Pentest Flow (All Exam Targets)
+
+**Entry point:** `getting-started/00-METHODOLOGY.md` — complete 5-phase flow: Recon → Web/Service Enum → Exploit Search → Initial Access → Privilege Escalation.
+
+| Symptom / Phase | Try This |
+|---|---|
+| **Just got target, no info yet** | `getting-started/00-METHODOLOGY.md` Phase 1 + `03-service-scanning.md` → run `nmap -sV -sC -p- $IP` |
+| **Found open ports, need to enum services** | `03-service-scanning.md` → banner grab, identify service versions → searchsploit each version |
+| **Port 80/443 open, web app found** | `getting-started/04-web-enumeration.md` → gobuster for dirs, whatweb for tech, robots.txt, source code |
+| **Identified CMS/app + version** | `getting-started/00-METHODOLOGY.md` Phase 3 → searchsploit or check `attacking-common-applications/00-METHODOLOGY.md` |
+| **Found RCE/exploit, need shell** | `getting-started/05-shell-types-setup.md` → choose reverse/bind/web shell → catch on listener + upgrade TTY |
+| **Got low-priv shell, need root** | `getting-started/06-privilege-escalation.md` → `sudo -l` (fastest), cron jobs, SUID bins, SSH keys, credentials |
+| **Shell is fragile, drops after 30s** | `getting-started/05-shell-types-setup.md` "Upgrade to Full Interactive TTY" + "Shell Stability Hierarchy" → switch to bind shell |
+| **Nmap scan stuck / slow / timing out** | `getting-started/03-service-scanning.md` Exam Speed Tips → run quick scan with top 1000 ports in background |
+| **Stuck on privesc > 10 min** | `getting-started/06-privilege-escalation.md` Decision Tree → run LinPEAS, re-check `sudo -l`, enumerate cron + SUID |
+| **VPN disconnected / can't reach target** | `getting-started/02-pentest-distro-setup.md` "Troubleshooting VPN Issues" → reconnect, verify routing, check firewall |
+| **Common exam mistakes / time wasters** | `getting-started/07-common-pitfalls.md` "Exam Time Management Mistakes" → reference during exam |
 
 ---
 
@@ -105,6 +125,59 @@
 | Need to enum security controls (Defender/AppLocker/LAPS) | `ad-enum-attacks/13-enumerating-security-controls.md` |
 | WinRM session keeps failing on second hop | `ad-enum-attacks/24-winrm-double-hop-kerberos.md` |
 
+## 5b. Windows Privilege Escalation — low-priv shell → SYSTEM
+
+**Entry point:** `windows-privesc/00-METHODOLOGY.md` — 8-phase flow + Decision Tree + Signal→Counter-Move. Always run `whoami /priv` + `whoami /groups` from an **elevated** prompt first.
+
+| Symptom / State | Try This |
+|---|---|
+| Got low-priv Windows shell, no idea where to start | `windows-privesc/00-METHODOLOGY.md` Phase 1 → `whoami /priv`, `whoami /groups`, `systeminfo`, `netstat -ano`, `ipconfig /all` |
+| `whoami /priv` shows **SeImpersonatePrivilege** (MSSQL/IIS/web svc acct) | `windows-privesc/07-seimpersonate.md` → PrintSpoofer (2019+) / JuicyPotato (≤2016) → SYSTEM |
+| `whoami /priv` shows **SeDebugPrivilege** | `windows-privesc/08-sedebugprivilege.md` → ProcDump LSASS → Mimikatz |
+| `whoami /priv` shows **SeTakeOwnershipPrivilege** | `windows-privesc/09-setakeownershipprivilege.md` → takeown + icacls → read SAM/web.config |
+| `whoami /priv` shows **SeBackupPrivilege** / member of **Backup Operators** | `windows-privesc/10-backup-operators.md` → diskshadow → NTDS.dit on DC |
+| `whoami /priv` shows **SeLoadDriverPrivilege** / **Print Operators** (Win10<1803) | `windows-privesc/14-print-operators.md` → Capcom.sys → SYSTEM |
+| Member of **Server Operators** | `windows-privesc/15-server-operators.md` → `sc config binPath=` add-admin on DC |
+| Member of **DnsAdmins** | `windows-privesc/12-dnsadmins.md` → malicious DLL via dnscmd → SYSTEM on DC |
+| Member of **Event Log Readers** | `windows-privesc/11-event-log-readers.md` → `wevtutil` grep `/user` for creds |
+| Member of **Hyper-V Administrators**, DCs virtualized | `windows-privesc/13-hyperv-admin.md` → offline-mount DC vhdx → NTDS |
+| No priv/group win — hunt creds | `windows-privesc/21-credential-hunting-notes.md` + `22`/`23`/`26` → unattend.xml, Winlogon, LaZagne, KeePass, mRemoteNG |
+| Found `unattend.xml` / `web.config` / Sticky Notes / PuTTY reg | `windows-privesc/00-METHODOLOGY.md` Phase 4 (credential hunting one-liners) |
+| Service runs as SYSTEM, weak ACL / unquoted path | `windows-privesc/17-weak-permissions.md` → SharpUp audit → binary/binpath hijack |
+| Unusual 3rd-party app installed (localhost port) | `windows-privesc/19-vulnerable-services.md` → known CVE/PoC (Druva inSync etc.) |
+| `AlwaysInstallElevated` both keys `0x1` | `windows-privesc/27-miscellaneous-techniques.md` → msfvenom MSI → SYSTEM |
+| Big patch gap / EOL Windows (7 / 2008) | `windows-privesc/18-kernel-exploits.md`, `29`/`30` → HiveNightmare/PrintNightmare/MS16-032 |
+| Locked-down Citrix / kiosk desktop | `windows-privesc/24-citrix-breakout.md` → dialog-box UNC breakout |
+| User present, all local vectors dead | `windows-privesc/25-interacting-with-users.md` → SCF/LNK + Responder, process monitor |
+| Got SYSTEM, now what | `windows-privesc/00-METHODOLOGY.md` Phase 8 → dump SAM/LSASS → PtH fleet → DCSync (`ad-enum-attacks/22-dcsync.md`) |
+
+## 5c. Linux Privilege Escalation — low-priv shell → root
+
+**Entry point:** `linux-privallege-escalation/00-METHODOLOGY.md` — 7-phase flow + Decision Tree + Signal→Counter-Move. Always run `id` + `sudo -l` + SUID find + `getcap` on **every** shell and **every** user you pivot to.
+
+| Symptom / State | Try This |
+|---|---|
+| Got low-priv Linux shell, no idea where to start | `00-METHODOLOGY.md` Phase 1 → `id; sudo -l; uname -a; echo $PATH; getcap`; SUID find |
+| `sudo -l` shows a NOPASSWD binary | Phase 3 → GTFOBins the binary (openssl/tcpdump/vi/less/busctl) |
+| `sudo -l` shows `env_keep+=LD_PRELOAD` | `20-shared-libraries-ld-preload.md` → malicious `.so` via any sudo cmd |
+| `sudo -l` shows `(ALL, !root)` + sudo <1.8.28 | `23-sudo.md` → CVE-2019-14287 `sudo -u#-1 <bin>` |
+| `getcap` shows `cap_setuid` / `cap_dac_override` | `11-capabilities.md` → setuid(0) / vim-edit `/etc/passwd` |
+| `id` shows group **lxd / docker / disk / adm** | `10-privileged-groups.md` / `14-lxd.md` / `15-docker.md` (mount host fs / read logs) |
+| Writable script run by root cron | `13-cron-job-abuse.md` → append reverse shell + `pspy64` |
+| Root cron runs `tar *` in writable dir | `06-wildcard-abuse.md` → `--checkpoint-action` injection |
+| Writable dir in `$PATH` / relative cmd in root script | `05-path_abuse.md` → PATH hijack |
+| Non-standard SUID/SGID binary | `08-special-permissions.md` (GTFOBins) or `21-shared-object-hijacking.md` (RUNPATH) |
+| Stuck in rbash / restricted shell | `07-scaping-restricted-shells.md` → `ssh -t "bash --noprofile"` |
+| sudo/SUID python script, writable module / PYTHONPATH | `22-python-library-hijacking.md` |
+| `showmount -e` shows `no_root_squash` | `18-miscellaneous-techniques.md` → SUID binary via NFS mount |
+| Root tmux socket group-readable | `18-miscellaneous-techniques.md` → `tmux -S <socket>` |
+| kubelet 10250 anon reachable | `16-kubernetes.md` → token → privileged pod → host fs |
+| No misconfig, box looks OLD (pre-2022 polkit) | `24-polkit.md` → PwnKit CVE-2021-4034 (no prereqs, highest EV) |
+| sudo 1.8.31 / 1.9.2 | `23-sudo.md` → Baron Samedit CVE-2021-3156 |
+| Kernel 5.8–5.17 / Ubuntu unpatched | `25-dirty-pipe.md` / `19-kernel-exploits.md` (OverlayFS) / `26-netfilter.md` |
+| Reverse shell has no TTY, `sudo` fails | Gotcha #2 → `python3 -c 'import pty;pty.spawn("/bin/bash")'` then continue |
+| Multi-step chain (hidden file → bash_history → group → WAR → sudo) | `28-skills-assessment.md` + `00-METHODOLOGY.md` Decision Tree |
+
 ## 6. Pivoting / Tunneling
 
 **Entry point:** `pivoting-tunneling/00-METHODOLOGY.md` — full decision tree + Signal→Counter-Move table.
@@ -148,7 +221,7 @@
 
 - `nmap/`, `footprinting/`, `ffuf/`, `web-recon/` — empty
 - `shells-payloads/` — empty (need for revshells, msfvenom, payload formats)
-- `linux-privesc/`, `windows-privesc/` — empty
+- `linux-privallege-escalation/` — full methodology + 28 notes (see §5c)
 - `password-attacks/` — only overview stub (john/hashcat/SAM/LSASS/PtH/PtT detail missing)
 - `ad-enum-attacks/` — sections 26, 28, 30, 33, 34, 35 missing
 

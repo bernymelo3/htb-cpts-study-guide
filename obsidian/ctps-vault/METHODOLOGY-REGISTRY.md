@@ -19,6 +19,9 @@ Tracks which CPTS module folders have an exam-ready `00-METHODOLOGY.md` playbook
 | sql-injection-fundamentals |                17 | Done                                                                            | 707 | 2026-05-15 |
 | ad-enum-attacks            |                33 | Done                                                                            | 709 | 2026-05-12 |
 | attacking-common-applications |                33 | Done                                                                            | 710 | 2026-05-15 |
+| getting-started            |                 7 | Done (foundational pentest methodology + 6 topic notes)                        | 711 | 2026-05-16 |
+| windows-privesc            |                32 | Done                                                                            | 712 | 2026-05-16 |
+| linux-privallege-escalation |               28 | Done                                                                            | 713 | 2026-05-16 |
 | web-proxies                |                17 | Pending                                                                         |   — | —          |
 | password-attacks           |                 1 | Skip (too thin until more notes added)                                          |   — | —          |
 
@@ -46,5 +49,8 @@ To keep methodology IDs from clashing with section-note IDs, allocate from a ded
 | 708 | web-proxies (reserved) |
 | 709 | ad-enum-attacks |
 | 710 | attacking-common-applications |
+| 711 | getting-started |
+| 712 | windows-privesc |
+| 713 | linux-privallege-escalation |
 
 Update this table when a new methodology is written.
