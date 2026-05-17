@@ -45,7 +45,7 @@ PLAYBOOK/<NN>-<NAME>.md, then update the task list + SEARCH.md.
 |---|---|---|
 | **"do phase 3 web"** | `02-EXPLOITATION-WEB.md` ✅ built | web-recon, ffuf, web-proxies, file-inclusion, sql-injection-fundamentals, sqlmap-fundamentals, xss, file-uploads, command-injetions, web-attacks, login-brute-forcing, attacking-common-applications |
 | **"do phase 3 services"** | `03-EXPLOITATION-SERVICES.md` + shells | common-services, shells-payloads, using-the-metasploit |
-| **"do phase 4 linux"** | `04-PRIVESC-LINUX.md` | linux-privallege-escalation, password-attacks (linux) |
+| **"do phase 4 linux"** | `04-PRIVESC-LINUX.md` ✅ built | linux-privallege-escalation, password-attacks (linux) |
 | **"do phase 4 windows"** | `05-PRIVESC-WINDOWS.md` | windows-privesc, password-attacks (windows) |
 | **"do phase 5"** | `06-LATERAL.md` | ad-enum-attacks, pivoting-tunneling, password-attacks (PtH/PtT) |
 | **"do report"** | `07-REPORT.md` | documentation (Bruno trigger method) |
